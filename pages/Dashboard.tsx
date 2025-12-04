@@ -8,7 +8,7 @@ import api from '../services/api'
 export const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
   const [submissions, setSubmissions] = useState<any[]>([]);
-  const [tasks, setTasks] = useState<any[]>([]);
+  const [task, setTasks] = useState<any[]>([]);
   const [wallet, setWallet] = useState<any>(null);  
   const [loading, setLoading] = useState(true);
 
@@ -56,7 +56,15 @@ export const Dashboard = () => {
       </div>
     );
   }
- 
+ // Format date helper
+  const formatDate = (iso?: string) => {
+    if (!iso) return "—";
+    try {
+      return new Date(iso.trim()).toLocaleString();
+    } catch {
+      return iso;
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -94,14 +102,17 @@ export const Dashboard = () => {
             <Link to="/tasks" className="text-sm text-primary-600 hover:text-primary-700 font-medium">View All</Link>
           </div>
           <div className="divide-y divide-slate-100">
-            {tasks.slice(0, 3).map((task) => (
+            
+            {task.slice(0, 3).map((task) => (
               <div key={task.id} className="p-4 sm:p-6 flex items-start sm:items-center gap-4 hover:bg-slate-50 transition-colors">
                 <div className="h-10 w-10 rounded-full bg-primary-50 flex items-center justify-center flex-shrink-0 text-primary-700 font-bold">
                   {task.employerName}
                 </div>
                 <div className="flex-1 min-w-0">
+                  <Link to={`/tasks/${task.id}`} className="block w-full">
                   <h4 className="text-sm font-medium text-slate-900 truncate">{task.title}</h4>
-                  <p className="text-xs text-slate-500 mt-0.5">{task.status} • {task.deadline || "Flexible"}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{task.status} • {formatDate(task.deadline) || "Flexible"}</p>
+                  </Link>
                 </div>
                 <div className="text-right">
                   <span className="block font-bold text-slate-900">{formatCurrency(task.reward)}</span>
@@ -109,6 +120,7 @@ export const Dashboard = () => {
                 </div>
               </div>
             ))}
+            
           </div>
         </Card>
 

@@ -39,11 +39,11 @@ export const Admin = () => {
 
     // Derived Stats
     const totalUsers = users.length;
-    const pendingWithdrawals = withdrawals.filter(w => w.status === 'PENDING').length;
-    const pendingSubmissions = submissions.filter(s => s.status === 'PENDING').length;
+    const pendingWithdrawals = withdrawals.filter(w => w.status === 'pending').length;
+    const pendingSubmissions = submissions.filter(s => s.status === 'pending').length;
     // Calculate total payouts (approved withdrawals)
     const totalPayouts = withdrawals
-        .filter(w => w.status === 'APPROVED')
+        .filter(w => w.status === 'approved')
         .reduce((acc, curr) => acc + curr.amount, 0);
 
     return (

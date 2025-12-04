@@ -58,8 +58,8 @@ const formatDate = (iso?: string) => {
   }
 };
   // Stats
-  const totalPending = requests.filter(r => r.status === 'PENDING').reduce((acc, curr) => acc + curr.amount, 0);
-  const countPending = requests.filter(r => r.status === 'PENDING').length;
+  const totalPending = requests.filter(r => r.status === 'pending').reduce((acc, curr) => acc + curr.amount, 0);
+  const countPending = requests.filter(r => r.status === 'pending').length;
 
   if (loading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-violet-600" /></div>;
 
@@ -75,7 +75,7 @@ const formatDate = (iso?: string) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard title="Pending Amount" value={formatCurrency(totalPending)} icon={<DollarSign size={20} />} />
         <StatCard title="Pending Requests" value={countPending.toString()} icon={<Clock size={20} />} />
-        <StatCard title="Requires Attention" value="0" icon={<AlertTriangle size={20} />} />
+        <StatCard title="Requires Attention" value={countPending.toString()} icon={<AlertTriangle size={20} />} />
       </div>
 
       <Card className="overflow-hidden">
@@ -100,13 +100,13 @@ const formatDate = (iso?: string) => {
                   <td className="px-6 py-4">{req.method}</td>
                   <td className="px-6 py-4 text-slate-500">{formatDate(req.createdAt.trim())}</td>
                   <td className="px-6 py-4">
-                    <Badge color={req.status === 'APPROVED' ? 'green' : req.status === 'REJECTED' ? 'red' : 'yellow'}>
+                    <Badge color={req.status === 'approved' ? 'green' : req.status === 'rejected' ? 'red' : 'yellow'}>
                         {req.status}
                     </Badge>
                   </td>
                   <td className="px-6 py-4 text-right font-bold text-slate-900">{formatCurrency(req.amount)}</td>
                   <td className="px-6 py-4 text-right">
-                    {req.status === 'PENDING' && (
+                    {req.status === 'pending' && (
                         <div className="flex justify-end gap-2">
                             <Button 
                                 size="sm" 

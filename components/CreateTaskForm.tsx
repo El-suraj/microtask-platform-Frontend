@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Card, Button, Input, Textarea, Select } from './ui';
 import { X, CheckCircle, AlertCircle } from 'lucide-react';
-// import { addTask, formatCurrency } from '../services/store';
+import {  formatCurrency } from '../services/store';
+import api from '../services/api';
+import { useToast } from './Toast';
 
 interface CreateTaskFormProps {
   onClose: () => void;
@@ -16,35 +18,56 @@ export const CreateTaskForm = ({ onClose, onSuccess }: CreateTaskFormProps) => {
     description: '',
     reward: '',
     spotsTotal: '',
-    timeEstimate: '',
+    deadline: '',
     difficulty: 'Easy'
   });
+  const {showToast} = useToast();
+   // min selectable date for calendar (today)
+    const minDate = new Date().toISOString().split('T')[0];
+    
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    // Simulate API delay
-    setTimeout(() => {
-      addTask({
+    try {
+      const payload = {
         title: formData.title,
-        category: formData.category,
-        description: formData.description,
+        description: formData.description,  
         reward: parseFloat(formData.reward) || 0,
-        spotsTotal: parseInt(formData.spotsTotal) || 10,
-        timeEstimate: formData.timeEstimate,
-        difficulty: formData.difficulty as any,
-      });
+        totalSlots: parseInt(formData.totalSlots) || 10,
+        proofType: 'text',
+        deadline: formData.deadline ? formData.deadline : null,
+        category: formData.category,
+        difficulty: formData.difficulty,
+      };
+
+    const res = await api.createTask({
+        title: payload.title,
+        description: payload.description,
+        reward: payload.reward,
+        totalSlots: payload.totalSlots,
+        proofType: payload.proofType,
+        deadline: payload.deadline,
+    });
+
+    showToast((res as any)?.message ?? 'Task Created sucessfully', { type: 'success' });
+    
+    if (onSuccess) onSuccess();
+    onClose();
+    } catch (error: any) {
+      console.error('Error creating task:', error);
+      showToast(error?.message || 'Failed to create task. Please try again.', { type: 'error' });
+    } finally {
       setLoading(false);
-      if (onSuccess) onSuccess();
-      onClose();
-    }, 1000);
+    }
   };
+    
 
   const estimatedCost = (parseFloat(formData.reward) || 0) * (parseInt(formData.spotsTotal) || 0);
   const platformFee = estimatedCost * 0.10;
@@ -115,19 +138,21 @@ export const CreateTaskForm = ({ onClose, onSuccess }: CreateTaskFormProps) => {
               name="spotsTotal"
               min="1"
               placeholder="100" 
-              value={formData.spotsTotal}
+              value={formData.totalSlots}
               onChange={handleChange}
               required
             />
             <Input 
-              label="Time Estimate" 
-              type="text" 
-              name="timeEstimate"
-              placeholder="e.g. 5 min" 
-              value={formData.timeEstimate}
+              label="DeadLine" 
+              type="date" 
+              name="deadline"
+              min={minDate}
+              placeholder="Select deadline date"
+              value={formData.deadline}
               onChange={handleChange}
               required
             />
+
             <Select 
               label="Difficulty"
               name="difficulty"

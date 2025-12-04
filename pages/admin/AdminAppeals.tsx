@@ -46,7 +46,7 @@ export const AdminAppeals = () => {
     }
   };
 
-  const pendingCount = appeals.filter(a => !a.status || a.status === 'PENDING').length;
+  const pendingCount = appeals.filter(a => !a.status || a.status === 'pending').length;
 
   if (loading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-violet-600" /></div>;
 
@@ -95,14 +95,14 @@ export const AdminAppeals = () => {
                     </td>
                     <td className="px-6 py-4">
                       <Badge color={
-                        appeal.status === 'APPROVED' ? 'green' : 
-                        appeal.status === 'REJECTED' ? 'red' : 'yellow'
+                        appeal.status === 'approved' ? 'green' : 
+                        appeal.status === 'rejected' ? 'red' : 'yellow'
                       }>
-                        {appeal.status || 'PENDING'}
+                        {appeal.status || 'pending'}
                       </Badge>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      {(!appeal.status || appeal.status === 'PENDING') && (
+                      {(!appeal.status || appeal.status === 'pending' || appeal.status === 'approved') && (
                         <div className="flex justify-end gap-2">
                           <Button 
                             size="sm" 

@@ -28,10 +28,17 @@ export const Employer = () => {
       // Filter tasks created by this user (assuming user.id matches task.userId)
       // If API returns all tasks, we filter. If API returns "my tasks", we use as is.
       // For now, assuming listTasks returns all public tasks, so we filter.
-      const myTasks = tasksData.filter(t => t.userId === userData.user.id);
+      // normalize user object (api.getMe may return { user } or user directly)
+      const userObj: User | null = (userData && (userData as any).user) ? (userData as any).user : (userData as any) ?? null;
+      setUser(userObj);
+
+      // normalize tasks list (api.listTasks may return array or { tasks: [...] })
+      const tasksList: Task[] = Array.isArray(tasksData) ? tasksData : (tasksData && (tasksData as any).tasks) ? (tasksData as any).tasks : [];
+
+      // If user id available, filter tasks created by this user, otherwise show empty list
+      const myTasks = userObj?.id ? tasksList.filter(t => t.userId === userObj.id) : [];
 
       setTasks(myTasks);
-      setUser(userData.user);
     } catch (err) {
       console.error("Failed to load employer data", err);
       showToast("Failed to load dashboard data", "error");
@@ -48,7 +55,6 @@ export const Employer = () => {
   const activeCampaigns = tasks.filter(t => !t.remainingSlots || t.remainingSlots > 0).length;
   const totalSlots = tasks.reduce((acc, t) => acc + (t.totalSlots || 0), 0);
   const filledSlots = tasks.reduce((acc, t) => acc + ((t.totalSlots || 0) - (t.remainingSlots || 0)), 0);
-  // Estimated spend (reward * filled slots)
   const totalSpent = tasks.reduce((acc, t) => acc + ((t.reward || 0) * ((t.totalSlots || 0) - (t.remainingSlots || 0))), 0);
 
   if (loading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-violet-600" /></div>;

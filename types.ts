@@ -1,7 +1,7 @@
 export enum UserRole {
-  WORKER = 'WORKER',
-  EMPLOYER = 'EMPLOYER',
-  ADMIN = 'ADMIN'
+  WORKER = 'User',
+  EMPLOYER = 'User',
+  ADMIN = 'Admin'
 }
 
 export enum TaskStatus {

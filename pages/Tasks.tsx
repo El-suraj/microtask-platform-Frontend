@@ -26,6 +26,15 @@ export const Tasks = () => {
   React.useEffect(() => {
     fetchTasks();
   }, []);
+  // Format date helper
+  const formatDate = (iso?: string) => {
+    if (!iso) return "—";
+    try {
+      return new Date(iso.trim()).toLocaleString();
+    } catch {
+      return iso;
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -61,7 +70,7 @@ export const Tasks = () => {
               <div className="flex items-center gap-4 text-xs text-slate-500 mb-6">
                 <div className="flex items-center gap-1">
                   <Clock size={14} className="text-primary-600" />
-                  {task.deadline || 'No Deadline'}
+                  {formatDate(task.deadline) || 'No Deadline'}
                 </div>
                 <div className="flex items-center gap-1">
                   <Users size={14} className="text-primary-600" />
