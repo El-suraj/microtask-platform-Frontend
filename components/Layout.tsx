@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { NavLink, Outlet, useLocation, Navigate } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, Navigate, Link } from 'react-router-dom';
 import {
   LayoutDashboard,
   CheckSquare,
@@ -14,7 +14,9 @@ import {
   Search,
   Briefcase,
   ShieldAlert,
-  List
+  List,
+  User,
+  ChevronDown
 } from 'lucide-react';
 import { UserRole } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -145,8 +147,8 @@ const Sidebar = ({
             ))}
           </nav>
 
-          {/* User Profile */}
-          <div className="p-4 border-t border-primary-800 bg-primary-950/30">
+          {/* User Profile - Now Clickable */}
+          <Link to="/profile" className="p-4 border-t border-primary-800 bg-primary-950/30 hover:bg-primary-800/30 transition-colors cursor-pointer">
             <div className="flex items-center gap-3">
               <img
                 src={user.avatar}
@@ -158,10 +160,10 @@ const Sidebar = ({
                 <p className="text-xs text-primary-300 truncate capitalize">{user.role}</p>
               </div>
             </div>
-            <button onClick={logout} className="mt-4 flex items-center gap-2 text-xs text-red-300 hover:text-red-200 px-1 w-full transition-colors">
+            <button onClick={(e) => { e.preventDefault(); logout(); }} className="mt-4 flex items-center gap-2 text-xs text-red-300 hover:text-red-200 px-1 w-full transition-colors">
               <LogOut size={14} /> Sign Out
             </button>
-          </div>
+          </Link>
         </div>
       </aside>
     </>
@@ -170,8 +172,10 @@ const Sidebar = ({
 
 export const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const location = useLocation();
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, logout } = useAuth();
 
   if (isLoading) {
     return (
@@ -200,6 +204,13 @@ export const Layout = () => {
     if (pathname.includes('submissions')) return 'My Work';
     return 'DCTV Earn';
   };
+
+  // Mock notifications
+  const notifications = [
+    { id: 1, text: "Your submission was approved", time: "5 min ago" },
+    { id: 2, text: "New task available", time: "1 hour ago" },
+    { id: 3, text: "Wallet credited: ₦500", time: "2 hours ago" },
+  ];
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -232,10 +243,110 @@ export const Layout = () => {
               />
             </div>
 
-            <button className="relative text-slate-500 hover:text-primary-600 transition-colors p-1.5 hover:bg-slate-100 rounded-full">
-              <Bell size={20} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-            </button>
+            {/* Notification Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setNotificationOpen(!notificationOpen)}
+                className="relative text-slate-500 hover:text-primary-600 transition-colors p-1.5 hover:bg-slate-100 rounded-full"
+              >
+                <Bell size={20} />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+              </button>
+
+              {notificationOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setNotificationOpen(false)}></div>
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-slate-200 z-20">
+                    <div className="p-4 border-b border-slate-100">
+                      <h3 className="font-semibold text-slate-900">Notifications</h3>
+                    </div>
+                    <div className="max-h-96 overflow-y-auto">
+                      {notifications.length > 0 ? (
+                        notifications.map((notification) => (
+                          <div key={notification.id} className="p-4 border-b border-slate-100 hover:bg-slate-50 cursor-pointer">
+                            <p className="text-sm text-slate-900">{notification.text}</p>
+                            <p className="text-xs text-slate-500 mt-1">{notification.time}</p>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-8 text-center text-slate-500">
+                          <Bell size={24} className="mx-auto mb-2 opacity-50" />
+                          <p className="text-sm">No new notifications</p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-3 border-t border-slate-100 text-center">
+                      <button className="text-sm text-primary-600 hover:text-primary-700 font-medium">View All</button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* User Dropdown Menu */}
+            <div className="relative">
+              <button
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="flex items-center gap-2 hover:bg-slate-100 rounded-full p-1.5 pr-3 transition-colors"
+              >
+                <img
+                  src={user.avatar}
+                  alt={user.name}
+                  className="w-8 h-8 rounded-full border-2 border-slate-200"
+                />
+                <ChevronDown size={16} className="text-slate-500 hidden sm:block" />
+              </button>
+
+              {userMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setUserMenuOpen(false)}></div>
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-slate-200 z-20">
+                    <div className="p-3 border-b border-slate-100">
+                      <p className="font-medium text-slate-900 truncate">{user.name}</p>
+                      <p className="text-xs text-slate-500 truncate">{user.email}</p>
+                    </div>
+                    <div className="py-2">
+                      <Link
+                        to="/profile"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                      >
+                        <User size={16} />
+                        Profile
+                      </Link>
+                      <Link
+                        to="/profile"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                      >
+                        <Settings size={16} />
+                        Settings
+                      </Link>
+                      <Link
+                        to="/wallet"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                      >
+                        <Wallet size={16} />
+                        Wallet
+                      </Link>
+                    </div>
+                    <div className="border-t border-slate-100 py-2">
+                      <button
+                        onClick={() => {
+                          setUserMenuOpen(false);
+                          logout();
+                        }}
+                        className="flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors w-full text-left"
+                      >
+                        <LogOut size={16} />
+                        Sign Out
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </header>
 
