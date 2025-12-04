@@ -47,6 +47,7 @@ export const Wallet = () => {
   const [method, setMethod] = useState<string>("");
   const [bankName, setBankName] = useState<string>(""); // used for Bank Transfer: bank name
   const [accountNumber, setAccountNumber] = useState<string>(""); // account number / wallet / paypal email
+  const [accountName, setAccountName] = useState<string>(""); // account holder name
 
   useEffect(() => {
     setMounted(true);
@@ -309,9 +310,8 @@ export const Wallet = () => {
                     </Badge>
                   </td>
                   <td
-                    className={`px-6 py-4 text-right font-bold ${
-                      tx.amount > 0 ? "text-primary-600" : "text-slate-900"
-                    }`}
+                    className={`px-6 py-4 text-right font-bold ${tx.amount > 0 ? "text-primary-600" : "text-slate-900"
+                      }`}
                   >
                     {tx.amount > 0 ? "+" : ""}
                     {formatCurrency(tx.amount)}
@@ -371,11 +371,18 @@ export const Wallet = () => {
                       onChange={(e: any) => setBankName(e.target.value)}
                     />
                     <Input
+                      label="Account Name"
+                      placeholder="Account holder name"
+                      value={accountName}
+                      onChange={(e: any) => setAccountName(e.target.value)}
+                    />
+                    <Input
                       label="Account Number"
                       placeholder="Account number"
                       value={accountNumber}
                       onChange={(e: any) => setAccountNumber(e.target.value)}
                     />
+                    {bankName && <p className="text-xs text-green-600 mt-2">✓ Using saved bank details from your profile</p>}
                   </>
                 )}
 

@@ -17,6 +17,13 @@ export enum SubmissionStatus {
   REJECTED = 'REJECTED'
 }
 
+export enum AccountStatus {
+  ACTIVE = 'ACTIVE',
+  SUSPENDED = 'SUSPENDED',
+  BANNED = 'BANNED',
+  UNVERIFIED = 'UNVERIFIED'
+}
+
 // export interface User {
 //   id: string;
 //   name: string;
@@ -90,4 +97,13 @@ export interface CreateTaskPayload {
   spotsTotal: number;
   difficulty: 'Easy' | 'Medium' | 'Hard';
   timeEstimate: string;
+}
+
+export interface UserActivity {
+  id: string;
+  userId: string;
+  action: string;
+  ipAddress: string;
+  device: string;
+  timestamp: string;
 }
