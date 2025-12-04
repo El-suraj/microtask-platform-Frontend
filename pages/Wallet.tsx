@@ -31,12 +31,22 @@ const data = [
 
 export const Wallet = () => {
   const [withdrawModalOpen, setWithdrawModalOpen] = useState(false);
+  const [depositModalOpen, setDepositModalOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
   const { showToast } = useToast();
   const [transactions, setTransactions] = useState([]);
   const [wallet, setWallet] = useState<any>({ walletBalance: 0 });
+
+  // controlled inputs for amount fields
+  const [withdrawAmount, setWithdrawAmount] = useState<number | "">("");
+  const [depositAmount, setDepositAmount] = useState<number | "">("");
+
+  // new: payment details for withdrawal
+  const [method, setMethod] = useState<string>("");
+  const [bankName, setBankName] = useState<string>(""); // used for Bank Transfer: bank name
+  const [accountNumber, setAccountNumber] = useState<string>(""); // account number / wallet / paypal email
 
   useEffect(() => {
     setMounted(true);
@@ -51,13 +61,11 @@ export const Wallet = () => {
         const walletRes = await api.getMyWallet();
         setWallet(walletRes || { walletBalance: 0 });
 
-        const id = current?.id;
-        if (id) {
-          const txData = await api.getTransactions(id);
-          setTransactions(
-            Array.isArray(txData) ? txData : txData.transactions || []
-          );
-        }
+        // fix: api.getTransactions() has no id param
+        const txData = await api.getTransactions();
+        setTransactions(
+          Array.isArray(txData) ? txData : txData.transactions || []
+        );
       } catch (error) {
         console.error("Failed to fetch user data", error);
       }
@@ -65,14 +73,131 @@ export const Wallet = () => {
     fetchUser();
   }, []);
 
-  const handleWithdraw = () => {
+  // simple id generator for local mock transactions
+  const genId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
+  // mock API: simulate network + response for deposit
+  const simulateDepositApi = async (amount: number) => {
+    return new Promise<{ success: boolean; transaction?: any }>((resolve) => {
+      setTimeout(() => {
+        const tx = {
+          id: genId(),
+          type: "DEPOSIT",
+          date: new Date().toLocaleString(),
+          status: "COMPLETED",
+          amount: Math.abs(amount),
+        };
+        resolve({ success: true, transaction: tx });
+      }, 900);
+    });
+  };
+
+  const addTransactionLocally = (tx: any) => {
+    setTransactions((prev: any[]) => [tx, ...prev]);
+  };
+
+  const handleWithdraw = async () => {
+    const amt = Number(withdrawAmount || 0);
+    if (!amt || amt <= 0) {
+      showToast("Enter a valid amount", "error");
+      return;
+    }
+    if (amt > (wallet.walletBalance || 0)) {
+      showToast("Insufficient balance", "error");
+      return;
+    }
+    if (!method) {
+      showToast("Select a payment method", "error");
+      return;
+    }
+
+    // method-specific validations
+    if (method === "Bank Transfer") {
+      if (!bankName || !accountNumber) {
+        showToast("Provide bank name and account number", "error");
+        return;
+      }
+    } else if (method === "PayPal") {
+      if (!accountNumber) {
+        showToast("Provide PayPal email address", "error");
+        return;
+      }
+    } else if (method === "Crypto (EVM)") {
+      if (!accountNumber) {
+        showToast("Provide wallet address", "error");
+        return;
+      }
+    }
+
     setProcessing(true);
-    // Simulate API
-    setTimeout(() => {
-      setProcessing(false);
+    try {
+      // normalize payload to backend fields: bankName and accountNumber
+      // send method as bankName when not a bank transfer to indicate method type
+      const payloadBankName = method === "Bank Transfer" ? bankName : method;
+      const payloadAccount = accountNumber;
+
+      const res = await api.requestWithdrawal(
+        amt,
+        payloadBankName,
+        payloadAccount
+      );
+      const withdrawal = (res as any)?.withdrawal;
+
+      // create local pending transaction entry (do NOT deduct balance until admin approves)
+      const tx = {
+        id: withdrawal?.id ?? genId(),
+        type: "WITHDRAWAL",
+        method: method,
+        date: withdrawal?.createdAt
+          ? new Date(withdrawal.createdAt).toLocaleString()
+          : new Date().toLocaleString(),
+        status: (withdrawal?.status ?? "PENDING").toString().toUpperCase(),
+        amount: -Math.abs(amt),
+      };
+      addTransactionLocally(tx);
+
+      showToast("Withdrawal requested — awaiting admin approval", "success");
       setWithdrawModalOpen(false);
-      showToast("Withdrawal request submitted successfully!", "success");
-    }, 1500);
+      setWithdrawAmount("");
+      setBankName("");
+      setAccountNumber("");
+      setMethod("");
+    } catch (err: any) {
+      console.error(err);
+      showToast(err?.payload?.message ?? "Withdrawal request failed", "error");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleDeposit = async () => {
+    const amt = Number(depositAmount || 0);
+    if (!amt || amt <= 0) {
+      showToast("Enter a valid amount", "error");
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      const res = await simulateDepositApi(amt);
+      if (res.success && res.transaction) {
+        setWallet((w: any) => ({
+          ...w,
+          walletBalance: Number((w.walletBalance || 0) + amt),
+        }));
+        addTransactionLocally(res.transaction);
+        showToast("Deposit successful", "success");
+        setDepositModalOpen(false);
+        setDepositAmount("");
+      } else {
+        showToast("Deposit failed", "error");
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("Deposit failed", "error");
+    } finally {
+      setProcessing(false);
+    }
   };
 
   return (
@@ -95,6 +220,7 @@ export const Wallet = () => {
                 <ArrowUpRight size={18} className="mr-2" /> Withdraw
               </Button>
               <Button
+                onClick={() => setDepositModalOpen(true)}
                 variant="outline"
                 className="border-primary-700 text-white hover:bg-primary-800 hover:text-white bg-transparent"
               >
@@ -160,6 +286,7 @@ export const Wallet = () => {
               <tr>
                 <th className="px-6 py-4">Type</th>
                 <th className="px-6 py-4">Date</th>
+                <th className="px-6 py-4">Method</th>
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4 text-right">Amount</th>
               </tr>
@@ -171,6 +298,9 @@ export const Wallet = () => {
                     {tx.type.toLowerCase()}
                   </td>
                   <td className="px-6 py-4 text-slate-500">{tx.date}</td>
+                  <td className="px-6 py-4 text-slate-500">
+                    {tx.method ?? "—"}
+                  </td>
                   <td className="px-6 py-4">
                     <Badge
                       color={tx.status === "COMPLETED" ? "green" : "yellow"}
@@ -199,12 +329,124 @@ export const Wallet = () => {
           <Card className="w-full max-w-md p-6 animate-in fade-in zoom-in duration-200">
             <h3 className="text-xl font-bold mb-4">Request Withdrawal</h3>
             <p className="text-sm text-slate-500 mb-6">
-              Withdrawals are processed within 24 hours to your preferred
-              payment method.
+              Withdrawals are processed by admins — requests stay pending until
+              approved.
             </p>
 
             <div className="space-y-4 mb-6">
-              <Input label="Amount (NGN)" type="number" placeholder="0.00" />
+              <Input
+                label="Amount (NGN)"
+                type="number"
+                placeholder="0.00"
+                value={withdrawAmount}
+                onChange={(e: any) =>
+                  setWithdrawAmount(
+                    e?.target?.value === "" ? "" : Number(e.target.value)
+                  )
+                }
+              />
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Payment Method
+                </label>
+                <select
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500 mb-3"
+                  onChange={(e) => setMethod(e.target.value)}
+                  value={method}
+                >
+                  <option value="">Select method</option>
+                  <option value="Bank Transfer">Bank Transfer</option>
+                  <option value="PayPal">PayPal</option>
+                  <option value="Crypto (EVM)">Crypto (EVM)</option>
+                </select>
+
+                {/* Conditional fields */}
+                {method === "Bank Transfer" && (
+                  <>
+                    <Input
+                      label="Bank Name"
+                      placeholder="e.g. First Bank"
+                      value={bankName}
+                      onChange={(e: any) => setBankName(e.target.value)}
+                    />
+                    <Input
+                      label="Account Number"
+                      placeholder="Account number"
+                      value={accountNumber}
+                      onChange={(e: any) => setAccountNumber(e.target.value)}
+                    />
+                  </>
+                )}
+
+                {method === "PayPal" && (
+                  <Input
+                    label="PayPal Email"
+                    placeholder="paypal@example.com"
+                    value={accountNumber}
+                    onChange={(e: any) => setAccountNumber(e.target.value)}
+                  />
+                )}
+
+                {method === "Crypto (EVM)" && (
+                  <Input
+                    label="Wallet Address (EVM)"
+                    placeholder="0x..."
+                    value={accountNumber}
+                    onChange={(e: any) => setAccountNumber(e.target.value)}
+                  />
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setWithdrawModalOpen(false);
+                  setWithdrawAmount("");
+                  setBankName("");
+                  setAccountNumber("");
+                  setMethod("");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleWithdraw} disabled={processing}>
+                {processing ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="animate-spin" size={16} /> Processing...
+                  </span>
+                ) : (
+                  "Confirm"
+                )}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Deposit Modal Mockup */}
+      {depositModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <Card className="w-full max-w-md p-6 animate-in fade-in zoom-in duration-200">
+            <h3 className="text-xl font-bold mb-4">Make a Deposit</h3>
+            <p className="text-sm text-slate-500 mb-6">
+              Deposits are reflected immediately in your wallet.
+            </p>
+
+            <div className="space-y-4 mb-6">
+              <Input
+                label="Amount (NGN)"
+                type="number"
+                placeholder="0.00"
+                value={depositAmount}
+                onChange={(e: any) =>
+                  setDepositAmount(
+                    e?.target?.value === "" ? "" : Number(e.target.value)
+                  )
+                }
+              />
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   Payment Method
@@ -220,11 +462,14 @@ export const Wallet = () => {
             <div className="flex gap-3 justify-end">
               <Button
                 variant="ghost"
-                onClick={() => setWithdrawModalOpen(false)}
+                onClick={() => {
+                  setDepositModalOpen(false);
+                  setDepositAmount("");
+                }}
               >
                 Cancel
               </Button>
-              <Button onClick={handleWithdraw} disabled={processing}>
+              <Button onClick={handleDeposit} disabled={processing}>
                 {processing ? (
                   <span className="flex items-center gap-2">
                     <Loader2 className="animate-spin" size={16} /> Processing...

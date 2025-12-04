@@ -68,8 +68,9 @@ export type Transaction = {
   taskId?: number | null;
   createdAt?: string;
 };
+// const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-const DEFAULT_BASE = (import.meta as any).env?.VITE_API_URL ?? "https://microtask-platform-production.up.railway.app";
+const DEFAULT_BASE = (import.meta as any).env?.DATABASE_URL ?? "https://microtask-platform-production.up.railway.app";
 
 class APIClient {
   private baseUrl = DEFAULT_BASE;
