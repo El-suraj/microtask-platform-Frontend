@@ -26,23 +26,64 @@ export const Dashboard = () => {
   }, []);
 
   async function fetchData() {
-     try{
+    try {
+      // Fetch user
       const userres = await api.getMe();
-      const subres = await api.listMySubmissions();
-      const taskres = await api.listTasks();
-      const walletres = await api.getMyWallet();
-      setUser(userres.user);
-      setSubmissions(Array.isArray(subres) ? subres : subres.submissions || []);
-      setTasks(taskres);
-      setWallet(walletres);
+      const userData = (userres as any)?.user ?? userres;
+      setUser(userData ?? null);
+
+      // Fetch submissions with fallback
+      let submissionsData: any[] = [];
+      try {
+        const subres = await api.listMySubmissions();
+        submissionsData = Array.isArray(subres)
+          ? subres
+          : subres?.submissions ?? [];
+      } catch (subErr) {
+        console.warn("Failed to fetch submissions:", subErr);
+        submissionsData = [];
+      }
+      setSubmissions(submissionsData);
+
+      // Fetch tasks with fallback
+      let tasksData: any[] = [];
+      try {
+        const taskres = await api.listTasks();
+        tasksData = Array.isArray(taskres) ? taskres : taskres?.tasks ?? [];
+      } catch (taskErr) {
+        console.warn("Failed to fetch tasks:", taskErr);
+        tasksData = [];
+      }
+      setTasks(tasksData);
+
+      // Fetch wallet with fallback
+      let walletData: any = null;
+      try {
+        const walletres = await api.getMyWallet();
+        console.log("Wallet API Response:", walletres);
+        // Handle different response formats
+        if (Array.isArray(walletres)) {
+          walletData = walletres[0];
+        } else if (walletres?.wallet) {
+          walletData = walletres.wallet;
+        } else if (walletres?.data) {
+          walletData = walletres.data;
+        } else {
+          walletData = walletres;
+        }
+        console.log("Normalized Wallet Data:", walletData);
+      } catch (walletErr) {
+        console.warn("Failed to fetch wallet:", walletErr);
+        walletData = { walletBalance: 0 };
+      }
+      setWallet(walletData ?? { walletBalance: 0 });
     } catch (error) {
       console.error("Error loading dashboard data:", error);
+      setError("Failed to load dashboard. Please refresh.");
     } finally {
       setLoading(false);
     }
   }
- 
-      
 
   if (loading) {
     return (
@@ -83,7 +124,7 @@ export const Dashboard = () => {
   const pendingCount = submissions.filter(
     (s) => s.status?.toLowerCase() === "pending"
   ).length;
-
+  const walletBalance = wallet?.walletBalance ?? 0;
 
   return (
     <div className="space-y-6">
@@ -91,7 +132,7 @@ export const Dashboard = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Total Earnings"
-          value={formatCurrency(wallet.walletBalance || 0)}
+          value={formatCurrency(walletBalance)}
           icon={<DollarSign size={20} />}
           trend="+12% this week"
         />

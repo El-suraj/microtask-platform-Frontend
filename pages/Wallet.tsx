@@ -55,18 +55,71 @@ export const Wallet = () => {
       try {
         // get current logged-in user
         const me = await api.getMe();
-        const current = me.user || me;
+        const current = (me as any)?.user ?? me;
         setUser(current);
 
         // wallet and transactions
-        const walletRes = await api.getMyWallet();
+        let walletRes: any = null;
+        try {
+          walletRes = await api.getMyWallet();
+          console.log("Wallet API Response (Wallet.tsx):", walletRes);
+          // Handle different response formats
+          if (Array.isArray(walletRes)) {
+            walletRes = walletRes[0];
+          } else if (walletRes?.wallet) {
+            walletRes = walletRes.wallet;
+          } else if (walletRes?.data) {
+            walletRes = walletRes.data;
+          }
+          console.log("Normalized Wallet (Wallet.tsx):", walletRes);
+        } catch (walletErr) {
+          console.warn("Failed to fetch wallet:", walletErr);
+          walletRes = { walletBalance: 0 };
+        }
         setWallet(walletRes || { walletBalance: 0 });
 
-        // fix: api.getTransactions() has no id param
-        const txData = await api.getTransactions();
-        setTransactions(
-          Array.isArray(txData) ? txData : txData.transactions || []
-        );
+        // Fetch all transactions for the user (includes deposits, withdrawals, etc)
+        let txData: any[] = [];
+        try {
+          // Try to get all transactions
+          const allTx = await api.getTransactions();
+          console.log("Transactions API Response:", allTx);
+
+          // Handle different response formats
+          if (Array.isArray(allTx)) {
+            txData = allTx;
+          } else if (allTx?.transactions) {
+            txData = allTx.transactions;
+          } else if (allTx?.data) {
+            txData = allTx.data;
+          } else {
+            txData = [];
+          }
+
+          console.log("Normalized Transactions Count:", txData.length);
+          console.log("Normalized Transactions:", txData);
+
+          // Log transaction types for debugging
+          const txTypes = txData.map((tx) => tx.type).filter(Boolean);
+          console.log("Transaction Types Found:", [...new Set(txTypes)]);
+        } catch (txErr) {
+          console.warn("Failed to fetch transactions:", txErr);
+          txData = [];
+        }
+
+        // Sort transactions by date (newest first)
+        txData = txData.map((tx) => ({
+          ...tx,
+          type: tx.type?.toUpperCase() ?? "",
+          status: tx.status?.toUpperCase() ?? "",
+          method: tx.method ?? tx.bankName ?? "—",
+          amount: Number(tx.amount ?? 0),
+          date: tx.createdAt
+            ? new Date(tx.createdAt).toLocaleString()
+           : tx.date ?? "",
+        }));
+
+        setTransactions(txData);
       } catch (error) {
         console.error("Failed to fetch user data", error);
       }
@@ -82,12 +135,15 @@ export const Wallet = () => {
     return new Promise<{ success: boolean; transaction?: any }>((resolve) => {
       setTimeout(() => {
         const tx = {
-          id: genId(),
-          type: "DEPOSIT",
-          date: new Date().toLocaleString(),
-          status: "COMPLETED",
-          amount: Math.abs(amount),
-        };
+              id: withdrawal?.id ?? genId(),
+              type: "WITHDRAWAL",
+              method: method || withdrawal?.bankName || "Withdrawal",
+              date: withdrawal?.createdAt
+                ? new Date(withdrawal.createdAt).toLocaleString()
+                : new Date().toLocaleString(),
+                        status: (withdrawal?.status || "PENDING").toUpperCase(),
+              amount: -Math.abs(amt),
+              };
         resolve({ success: true, transaction: tx });
       }, 900);
     });
@@ -310,8 +366,9 @@ export const Wallet = () => {
                     </Badge>
                   </td>
                   <td
-                    className={`px-6 py-4 text-right font-bold ${tx.amount > 0 ? "text-primary-600" : "text-slate-900"
-                      }`}
+                    className={`px-6 py-4 text-right font-bold ${
+                      tx.amount > 0 ? "text-primary-600" : "text-slate-900"
+                    }`}
                   >
                     {tx.amount > 0 ? "+" : ""}
                     {formatCurrency(tx.amount)}
@@ -382,7 +439,11 @@ export const Wallet = () => {
                       value={accountNumber}
                       onChange={(e: any) => setAccountNumber(e.target.value)}
                     />
-                    {bankName && <p className="text-xs text-green-600 mt-2">✓ Using saved bank details from your profile</p>}
+                    {bankName && (
+                      <p className="text-xs text-green-600 mt-2">
+                        ✓ Using saved bank details from your profile
+                      </p>
+                    )}
                   </>
                 )}
 
