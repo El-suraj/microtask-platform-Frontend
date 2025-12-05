@@ -10,7 +10,7 @@ export type User = {
   role?: string;
   walletBalance?: number;
   createdAt?: string;
-  profileImage?:  string | null;
+  profileImage?: string | null;
   bankName?: string | null;
   accountName?: string | null;
   accountNumber?: string | null;
@@ -83,7 +83,9 @@ export type Transaction = {
 };
 // const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-const DEFAULT_BASE = (import.meta as any).env?.DATABASE_URL ?? "https://microtask-platform-production.up.railway.app";
+const DEFAULT_BASE =
+  (import.meta as any).env?.DATABASE_URL ??
+  "https://microtask-platform-production.up.railway.app";
 
 class APIClient {
   private baseUrl = DEFAULT_BASE;
@@ -110,7 +112,12 @@ class APIClient {
     return headers;
   }
 
-  private async request<T>(method: Method, path: string, body?: any, opts?: { isForm?: boolean; query?: Record<string, any> }) {
+  private async request<T>(
+    method: Method,
+    path: string,
+    body?: any,
+    opts?: { isForm?: boolean; query?: Record<string, any> }
+  ) {
     let url = path.startsWith("http") ? path : `${this.baseUrl}${path}`;
     if (opts?.query) {
       const params = new URLSearchParams();
@@ -131,7 +138,11 @@ class APIClient {
     if (res.status === 401 && this.onUnauthorized) this.onUnauthorized();
     const contentType = res.headers.get("content-type") ?? "";
     const text = await res.text();
-    const payload = text ? (contentType.includes("application/json") ? JSON.parse(text) : text) : null;
+    const payload = text
+      ? contentType.includes("application/json")
+        ? JSON.parse(text)
+        : text
+      : null;
     if (!res.ok) {
       const err: any = new Error(payload?.message ?? res.statusText);
       err.status = res.status;
@@ -142,26 +153,44 @@ class APIClient {
   }
 
   // Auth
-  async register(data: { name: string; email: string; password: string; phone?: string }) {
-    return this.request<{ user: User; token: string }>("POST", "/api/auth/register", data);
+  async register(data: {
+    name: string;
+    email: string;
+    password: string;
+    phone?: string;
+  }) {
+    return this.request<{ user: User; token: string }>(
+      "POST",
+      "/auth/register",
+      data
+    );
   }
   async login(email: string, password: string) {
-    return this.request<{ user: User; token: string }>("POST", "/api/auth/login", { email, password });
+    return this.request<{ user: User; token: string }>(
+      "POST",
+      "/auth/login",
+      { email, password }
+    );
   }
 
   // User
   async getMe() {
-    return this.request<{ user: User }>("GET", "/api/user/me");
+    return this.request<{ user: User }>("GET", "/user/me");
   }
   async getUser(id: number) {
-    return this.request<User>("GET", `/api/user/${id}`);
+    return this.request<User>("GET", `/user/${id}`);
   }
   async updateUser(id: number, payload: Partial<User>) {
-    return this.request<User>("PUT", `/api/user/${id}`, payload);
+    return this.request<User>("PUT", `/user/${id}`, payload);
   }
 
   // Tasks
-  async listTasks(params?: { status?: string; q?: string; page?: number; limit?: number }) {
+  async listTasks(params?: {
+    status?: string;
+    q?: string;
+    page?: number;
+    limit?: number;
+  }) {
     return this.request<Task[]>("GET", "/tasks", undefined, { query: params });
   }
   async getTask(id: number) {
@@ -175,7 +204,11 @@ class APIClient {
     proofType?: string;
     deadline?: string;
   }) {
-    return this.request<{ message: string; task: Task }>("POST", "/tasks", payload);
+    return this.request<{ message: string; task: Task }>(
+      "POST",
+      "/tasks",
+      payload
+    );
   }
   async updateTask(id: number, payload: Partial<Task>) {
     return this.request<Task>("PUT", `/tasks/${id}`, payload);
@@ -186,23 +219,64 @@ class APIClient {
 
   // Submissions (FormData for images)
   async createSubmission(fd: FormData) {
-    return this.request<{ message: string; submission: Submission }>("POST", "/submit-task", fd, { isForm: true });
+    return this.request<{ message: string; submission: Submission }>(
+      "POST",
+      "/submit-task",
+      fd,
+      { isForm: true }
+    );
   }
+  // Try a few possible routes for "my submissions" — many backends vary.
   async listMySubmissions() {
-    return this.request<Submission[]>("GET", "/api/dashboard/my-submissions/");
+    const candidates = [
+      "/dashboard/my-submissions",
+    ];
+
+    let lastErr: any = null;
+    for (const path of candidates) {
+      try {
+        const res = await this.request<any>("GET", path);
+        // normalize: either an array or { submissions: [...] }
+        if (Array.isArray(res)) return res as Submission[];
+        if (res && Array.isArray(res.submissions))
+          return res.submissions as Submission[];
+        // if backend returns { data: [...] }
+        if (res && Array.isArray(res.data)) return res.data as Submission[];
+        // otherwise return whatever parsed into an array if possible
+        return (res as any) ?? [];
+      } catch (err: any) {
+        lastErr = err;
+        if (err?.status === 404) {
+          // try next candidate
+          continue;
+        }
+        // non-404 fatal error: rethrow
+        throw err;
+      }
+    }
+    // none matched
+    throw lastErr ?? new Error("my-submissions endpoint not found");
   }
   async getSubmission(id: number) {
-    return this.request<Submission>("GET", `/api/dashboard/my-submissions/${id}`);
+    return this.request<Submission>(
+      "GET",
+      `/dashboard/my-submissions/${id}`
+    );
   }
   // Appeal - common patterns supported
   async submitAppeal(submissionId: number, message: string) {
     // route param preferred
-    return this.request<{ message: string; appeal: Appeal }>("POST", `/submit-task/${submissionId}/appeal`, { message });
+    return this.request<{ message: string; appeal: Appeal }>(
+      "POST",
+      `/submit-task/${submissionId}/appeal`,
+      { message }
+    );
   }
   async listAppeals(submissionId?: number) {
-    return this.request<Appeal[]>("GET", "/admin/appeals", undefined, { query: submissionId ? { submissionId } : undefined });
+    return this.request<Appeal[]>("GET", "/admin/appeals", undefined, {
+      query: submissionId ? { submissionId } : undefined,
+    });
   }
-
   // Admin actions
   async adminGetAllUsers() {
     return this.request<User[]>("GET", "/admin/users");
@@ -217,7 +291,9 @@ class APIClient {
     return this.request("PUT", `/admin/submissions/${submissionId}/approve`);
   }
   async rejectSubmission(submissionId: number, note?: string) {
-    return this.request("PUT", `/admin/submissions/${submissionId}/reject`, { note });
+    return this.request("PUT", `/admin/submissions/${submissionId}/reject`, {
+      note,
+    });
   }
   async adminGetWithdrawals() {
     return this.request<Withdrawal[]>("GET", "/admin/withdrawals");
@@ -225,7 +301,10 @@ class APIClient {
   async adminGetAllAppeals() {
     return this.request<Appeal[]>("GET", "/admin/appeals");
   }
-  async resolveAppeal(appealId: number, action: { decision: "approve" | "reject"; note?: string }) {
+  async resolveAppeal(
+    appealId: number,
+    action: { decision: "approve" | "reject"; note?: string }
+  ) {
     return this.request("PUT", `/admin/appeals/${appealId}/resolve`, action);
   }
 
@@ -234,14 +313,26 @@ class APIClient {
     return this.request<{ walletBalance: number }>("GET", "/wallet/me");
   }
   async topUpWallet(amount: number) {
-    return this.request<{ message: string; walletBalance: number }>("POST", "/wallet/topup", { amount });
+    return this.request<{ message: string; walletBalance: number }>(
+      "POST",
+      "/wallet/topup",
+      { amount }
+    );
   }
-  async requestWithdrawal(amount: number, bankName: string, accountNumber: string) {
-    return this.request<{ message: string; withdrawal: Withdrawal }>("POST", "/wallet/withdraw", {
-      amount,
-      bankName,
-      accountNumber,
-    });
+  async requestWithdrawal(
+    amount: number,
+    bankName: string,
+    accountNumber: string
+  ) {
+    return this.request<{ message: string; withdrawal: Withdrawal }>(
+      "POST",
+      "/wallet/withdraw",
+      {
+        amount,
+        bankName,
+        accountNumber,
+      }
+    );
   }
   async listWithdrawals(userSpecific = true) {
     // GET /wallet/withdrawals returns either user-specific or admin view depending on role
@@ -257,18 +348,41 @@ class APIClient {
     return this.request<Transaction[]>("GET", "/wallet/transactions");
   }
 
-    // ==================== Bank Details ====================
-  async addBankDetail(payload: { bankName: string; accountNumber: string; accountHolder?: string; isPrimary?: boolean }) {
-    return this.request<{ message: string; bankDetail: BankDetail }>("POST", "/wallet/bank", payload);
+  // ==================== Bank Details ====================
+  async addBankDetail(payload: {
+    bankName: string;
+    accountNumber: string;
+    accountHolder?: string;
+    isPrimary?: boolean;
+  }) {
+    return this.request<{ message: string; bankDetail: BankDetail }>(
+      "POST",
+      "/wallet/bank",
+      payload
+    );
   }
   async listBankDetails() {
     return this.request<{ bankDetails: BankDetail[] }>("GET", "/wallet/bank");
   }
-  async updateBankDetail(id: number, payload: Partial<{ bankName: string; accountNumber: string; accountHolder: string }>) {
-    return this.request<{ message: string; bankDetail: BankDetail }>("PUT", `/wallet/bank/${id}`, payload);
+  async updateBankDetail(
+    id: number,
+    payload: Partial<{
+      bankName: string;
+      accountNumber: string;
+      accountHolder: string;
+    }>
+  ) {
+    return this.request<{ message: string; bankDetail: BankDetail }>(
+      "PUT",
+      `/wallet/bank/${id}`,
+      payload
+    );
   }
   async setPrimaryBankDetail(id: number) {
-    return this.request<{ message: string }>("PUT", `/wallet/bank/${id}/primary`);
+    return this.request<{ message: string }>(
+      "PUT",
+      `/wallet/bank/${id}/primary`
+    );
   }
   async deleteBankDetail(id: number) {
     return this.request<{ message: string }>("DELETE", `/wallet/bank/${id}`);
