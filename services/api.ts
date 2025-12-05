@@ -10,6 +10,10 @@ export type User = {
   role?: string;
   walletBalance?: number;
   createdAt?: string;
+  profileImage?:  string | null;
+  bankName?: string | null;
+  accountName?: string | null;
+  accountNumber?: string | null;
 };
 
 export type Task = {
@@ -46,6 +50,15 @@ export type Appeal = {
   status?: string;
   adminDecision?: string | null;
   adminNote?: string | null;
+  createdAt?: string;
+};
+
+export type BankDetail = {
+  id: number;
+  bankName: string;
+  accountNumberMasked: string;
+  accountHolder?: string;
+  isPrimary: boolean;
   createdAt?: string;
 };
 
@@ -242,6 +255,23 @@ class APIClient {
   }
   async getTransactions() {
     return this.request<Transaction[]>("GET", "/wallet/transactions");
+  }
+
+    // ==================== Bank Details ====================
+  async addBankDetail(payload: { bankName: string; accountNumber: string; accountHolder?: string; isPrimary?: boolean }) {
+    return this.request<{ message: string; bankDetail: BankDetail }>("POST", "/wallet/bank", payload);
+  }
+  async listBankDetails() {
+    return this.request<{ bankDetails: BankDetail[] }>("GET", "/wallet/bank");
+  }
+  async updateBankDetail(id: number, payload: Partial<{ bankName: string; accountNumber: string; accountHolder: string }>) {
+    return this.request<{ message: string; bankDetail: BankDetail }>("PUT", `/wallet/bank/${id}`, payload);
+  }
+  async setPrimaryBankDetail(id: number) {
+    return this.request<{ message: string }>("PUT", `/wallet/bank/${id}/primary`);
+  }
+  async deleteBankDetail(id: number) {
+    return this.request<{ message: string }>("DELETE", `/wallet/bank/${id}`);
   }
 
   // Dashboard
