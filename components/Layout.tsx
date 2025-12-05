@@ -151,7 +151,7 @@ const Sidebar = ({
           <Link to="/profile" className="p-4 border-t border-primary-800 bg-primary-950/30 hover:bg-primary-800/30 transition-colors cursor-pointer">
             <div className="flex items-center gap-3">
               <img
-                src={'../components/avatar.png'}
+                src="components/avatar.png"
                 alt="User"
                 className="w-9 h-9 rounded-full border border-primary-700"
               />
