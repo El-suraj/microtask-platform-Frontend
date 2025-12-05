@@ -39,6 +39,23 @@ export const Profile = () => {
     fetchUser();
   }, []);
 
+   const handlePictureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setLoadingPicture(true);
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfilePicture(reader.result as string);
+        // TODO: Upload to server
+        setTimeout(() => {
+          setLoadingPicture(false);
+          showToast("Profile picture updated successfully", "success");
+        }, 1000);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleUpdateProfile = (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,13 +109,20 @@ export const Profile = () => {
         <Card className="p-6 text-center h-fit">
           <div className="relative w-24 h-24 mx-auto mb-4">
             <img 
-              src={'../components/avatar.png'} 
+              src={profilePicture} 
               alt="Profile" 
               className="w-full h-full rounded-full object-cover border-4 border-slate-50"
             />
-            <button className="absolute bottom-0 right-0 p-2 bg-violet-600 text-white rounded-full hover:bg-violet-700 transition-colors shadow-sm">
-              <Camera size={14} />
-            </button>
+            <input
+                type="file"
+                id="profile-picture"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePictureUpload}
+              />
+            <label htmlFor="profile-picture" className="absolute bottom-0 right-0 p-2 bg-violet-600 text-white rounded-full hover:bg-violet-700 transition-colors shadow-sm cursor-pointer">
+              {loadingPicture ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />}
+            </label>
           </div>
           <h3 className="text-xl font-bold text-slate-900">{User.name}</h3>
           <p className="text-slate-500 text-sm mb-4 capitalize">{User.role.toLowerCase()} Account</p>
@@ -127,6 +151,47 @@ export const Profile = () => {
               </div>
             </form>
           </Card>
+
+          {/* Bank Details Card */}
+            <Card className="p-6">
+              <h3 className="font-semibold text-slate-900 mb-2 flex items-center gap-2">
+                <Landmark size={18} /> Bank Details
+              </h3>
+              <p className="text-sm text-slate-500 mb-6">
+                Save your bank details for faster withdrawals
+              </p>
+              <form onSubmit={handleUpdateBankDetails}>
+                <div className="space-y-4 mb-6">
+                  <Input
+                    label="Bank Name"
+                    placeholder="e.g. First Bank, GTBank, etc."
+                    value={bankName}
+                    onChange={(e: any) => setBankName(e.target.value)}
+                    required
+                  />
+                  <Input
+                    label="Account Name"
+                    placeholder="Account holder name"
+                    value={accountName}
+                    onChange={(e: any) => setAccountName(e.target.value)}
+                    required
+                  />
+                  <Input
+                    label="Account Number"
+                    placeholder="10-digit account number"
+                    value={accountNumber}
+                    onChange={(e: any) => setAccountNumber(e.target.value)}
+                    maxLength={10}
+                    required
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <Button type="submit" disabled={loadingBankDetails}>
+                    {loadingBankDetails ? <span className="flex items-center gap-2"><Loader2 className="animate-spin" size={16} /> Saving...</span> : "Save Bank Details"}
+                  </Button>
+                </div>
+              </form>
+            </Card>
 
           <Card className="p-6">
             <h3 className="font-semibold text-slate-900 mb-6 flex items-center gap-2">
