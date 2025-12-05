@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, Button, Input, Textarea, Select } from './ui';
 import { X, CheckCircle, AlertCircle } from 'lucide-react';
-import {  formatCurrency } from '../services/store';
+import {  formatCurrency } from '../services/api';
 import api from '../services/api';
 import { useToast } from './Toast';
 

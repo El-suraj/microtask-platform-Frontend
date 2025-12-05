@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Card, Button, Input, Badge } from "../components/ui";
-import { formatCurrency } from "../services/store";
+import { formatCurrency } from "../services/api";
 import {
   ArrowUpRight,
   ArrowDownLeft,

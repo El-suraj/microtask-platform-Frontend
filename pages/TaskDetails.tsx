@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { FileUploader } from "../components/FileUploader";
 import api from "../services/api";
-import { formatCurrency } from "../services/store";
+import { formatCurrency } from "../services/api";
 import { useToast } from "../components/Toast";
 
 export const TaskDetails = () => {

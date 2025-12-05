@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Card, Button, Badge, Input } from '../components/ui';
 import { Search, Filter, Clock, Users } from 'lucide-react';
 import api from '../services/api'
-import { formatCurrency } from '../services/store';
+import { formatCurrency } from '../services/api';
 
 
 export const Tasks = () => {

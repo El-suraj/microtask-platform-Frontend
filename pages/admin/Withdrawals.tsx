@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Button, Badge, StatCard } from '../../components/ui';
 import api from "../../services/api";
-import { formatCurrency } from '../../services/store';
+import { formatCurrency } from '../../services/api';
 import { WithdrawalRequest } from '../../types';
 import { Check, X, Loader2, DollarSign, Clock, AlertTriangle } from 'lucide-react';
 import { useToast } from '../../components/Toast';

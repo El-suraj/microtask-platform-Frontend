@@ -250,6 +250,11 @@ class APIClient {
   }
 }
 
+export const formatCurrency = (amount: number) => {
+  if (!amount) return "₦0";
+  return "₦" + amount.toLocaleString("en-NG");
+};
+
 const api = new APIClient();
 
 export default api;
