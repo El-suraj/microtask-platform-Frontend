@@ -1,6 +1,5 @@
-
-import React, { useState } from 'react';
-import { NavLink, Outlet, useLocation, Navigate, Link } from 'react-router-dom';
+import React, { useState } from "react";
+import { NavLink, Outlet, useLocation, Navigate, Link } from "react-router-dom";
 import {
   LayoutDashboard,
   CheckSquare,
@@ -16,87 +15,133 @@ import {
   ShieldAlert,
   List,
   User,
-  ChevronDown
-} from 'lucide-react';
-import { UserRole } from '../types';
-import { useAuth } from '../context/AuthContext';
-import { Loader2 } from 'lucide-react';
-import { Logo } from './Logo';
+  ChevronDown,
+} from "lucide-react";
+import { UserRole } from "../types";
+import { useAuth } from "../context/AuthContext";
+import { Loader2 } from "lucide-react";
+import { Logo } from "./Logo";
+import api from "@/services/api";
 
 const Sidebar = ({
   isOpen,
-  onClose
+  onClose,
 }: {
   isOpen: boolean;
   onClose: () => void;
 }) => {
-  const { user, logout } = useAuth();
+  const { user: authUser, logout } = useAuth();
+  const [dbUser, setDbUser] = React.useState<any>(null);
+  const [loading, setLoading] = React.useState(true);
 
-  const links = [
-    // Shared
-    {
-      icon: <LayoutDashboard size={20} />,
-      label: "Dashboard",
-      path: "/dashboard",
-      roles: [UserRole.WORKER, UserRole.EMPLOYER, UserRole.ADMIN]
-    },
-    // Worker
-    {
-      icon: <CheckSquare size={20} />,
-      label: "Browse Tasks",
-      path: "/tasks",
-      roles: [UserRole.WORKER]
-    },
-    {
-      icon: <List size={20} />,
-      label: "My Submissions",
-      path: "/worker/submissions",
-      roles: [UserRole.WORKER]
-    },
-    {
-      icon: <Users size={20} />,
-      label: "Referrals",
-      path: "/referrals",
-      roles: [UserRole.WORKER]
-    },
-    // Employer
-    {
-      icon: <Briefcase size={20} />,
-      label: "Manage Campaigns",
-      path: "/employer",
-      roles: [UserRole.EMPLOYER]
-    },
-    // Admin
-    {
-      icon: <ShieldAlert size={20} />,
-      label: "Overview",
-      path: "/admin",
-      roles: [UserRole.ADMIN]
-    },
-    {
-      icon: <Wallet size={20} />,
-      label: "Payouts",
-      path: "/admin/withdrawals",
-      roles: [UserRole.ADMIN]
-    },
-    // Shared
-    {
-      icon: <Wallet size={20} />,
-      label: "Wallet",
-      path: "/wallet",
-      roles: [UserRole.WORKER, UserRole.EMPLOYER]
-    },
-    {
-      icon: <Settings size={20} />,
-      label: "Profile",
-      path: "/profile",
-      roles: [UserRole.WORKER, UserRole.EMPLOYER, UserRole.ADMIN]
-    },
-  ];
+  React.useEffect(() => {
+    const fetchUserFromDB = async () => {
+      try {
+        const userData = await api.getMe();
+        const freshUser = (userData as any)?.user ?? userData;
+        setDbUser(freshUser);
+      } catch (err) {
+        console.error("Failed to fetch user from DB:", err);
+        // Fallback to auth context user
+        setDbUser(authUser);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (authUser?.id) {
+      fetchUserFromDB();
+    }
+  }, [authUser?.id]);
+
+  // Use DB user if available, fallback to auth context
+  const user = dbUser || authUser;
+
+  const links =
+    user?.role === "admin"
+      ? [
+          // Admin Only
+          {
+            icon: <ShieldAlert size={20} />,
+            label: "Overview",
+            path: "/admin",
+            roles: [UserRole.ADMIN],
+          },
+          {
+            icon: <Wallet size={20} />,
+            label: "Payouts",
+            path: "/admin/withdrawals",
+            roles: [UserRole.ADMIN],
+          },
+          {
+            icon: <Wallet size={20} />,
+            label: "Wallet",
+            path: "/wallet",
+            roles: [UserRole.ADMIN],
+          },
+          {
+            icon: <Settings size={20} />,
+            label: "Profile",
+            path: "/profile",
+            roles: [UserRole.ADMIN],
+          },
+        ]
+      : [
+          // Shared
+          {
+            icon: <LayoutDashboard size={20} />,
+            label: "Dashboard",
+            path: "/dashboard",
+            roles: [UserRole.WORKER, UserRole.EMPLOYER],
+          },
+          // Worker
+          {
+            icon: <CheckSquare size={20} />,
+            label: "Browse Tasks",
+            path: "/tasks",
+            roles: [UserRole.WORKER],
+          },
+          {
+            icon: <List size={20} />,
+            label: "My Submissions",
+            path: "/worker/submissions",
+            roles: [UserRole.WORKER],
+          },
+          {
+            icon: <Users size={20} />,
+            label: "Referrals",
+            path: "/referrals",
+            roles: [UserRole.WORKER],
+          },
+          // Employer
+          {
+            icon: <Briefcase size={20} />,
+            label: "Manage Campaigns",
+            path: "/employer",
+            roles: [UserRole.EMPLOYER],
+          },
+          // Shared
+          {
+            icon: <Wallet size={20} />,
+            label: "Wallet",
+            path: "/wallet",
+            roles: [UserRole.WORKER, UserRole.EMPLOYER],
+          },
+          {
+            icon: <Settings size={20} />,
+            label: "Profile",
+            path: "/profile",
+            roles: [UserRole.WORKER, UserRole.EMPLOYER],
+          },
+        ];
 
   if (!user) return null;
 
-  const filteredLinks = links.filter(link => link.roles.includes(user.role));
+  // For admin, show all links directly (already filtered in links array)
+  // For workers/employers, filter by role
+  const filteredLinks =
+    user?.role === "admin"
+      ? links
+      : links.filter((link) => link.roles.some((r) => r === user.role));
 
   return (
     <>
@@ -110,8 +155,9 @@ const Sidebar = ({
 
       {/* Sidebar Content */}
       <aside
-        className={`fixed top-0 left-0 z-50 h-screen w-64 bg-primary-900 text-white transition-transform duration-300 md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
+        className={`fixed top-0 left-0 z-50 h-screen w-64 bg-primary-900 text-white transition-transform duration-300 md:translate-x-0 ${
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
@@ -119,7 +165,10 @@ const Sidebar = ({
             <div className="flex items-center gap-2">
               <Logo className="h-12 w-auto" variant="white" />
             </div>
-            <button onClick={onClose} className="ml-auto md:hidden text-primary-200">
+            <button
+              onClick={onClose}
+              className="ml-auto md:hidden text-primary-200"
+            >
               <X size={24} />
             </button>
           </div>
@@ -135,9 +184,10 @@ const Sidebar = ({
                 to={link.path}
                 onClick={() => onClose()}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive
-                    ? 'bg-primary-700 text-white shadow-lg shadow-primary-900/20'
-                    : 'text-primary-100 hover:text-white hover:bg-primary-800'
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? "bg-primary-700 text-white shadow-lg shadow-primary-900/20"
+                      : "text-primary-100 hover:text-white hover:bg-primary-800"
                   }`
                 }
               >
@@ -148,7 +198,10 @@ const Sidebar = ({
           </nav>
 
           {/* User Profile - Now Clickable */}
-          <Link to="/profile" className="p-4 border-t border-primary-800 bg-primary-950/30 hover:bg-primary-800/30 transition-colors cursor-pointer">
+          <Link
+            to="/profile"
+            className="p-4 border-t border-primary-800 bg-primary-950/30 hover:bg-primary-800/30 transition-colors cursor-pointer"
+          >
             <div className="flex items-center gap-3">
               <img
                 src="components/avatar.png"
@@ -156,11 +209,21 @@ const Sidebar = ({
                 className="w-9 h-9 rounded-full border border-primary-700"
               />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">{user.name}</p>
-                <p className="text-xs text-primary-300 truncate capitalize">{user.role}</p>
+                <p className="text-sm font-medium text-white truncate">
+                  {user.name}
+                </p>
+                <p className="text-xs text-primary-300 truncate capitalize">
+                  {user.role}
+                </p>
               </div>
             </div>
-            <button onClick={(e) => { e.preventDefault(); logout(); }} className="mt-4 flex items-center gap-2 text-xs text-red-300 hover:text-red-200 px-1 w-full transition-colors">
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                logout();
+              }}
+              className="mt-4 flex items-center gap-2 text-xs text-red-300 hover:text-red-200 px-1 w-full transition-colors"
+            >
               <LogOut size={14} /> Sign Out
             </button>
           </Link>
@@ -193,16 +256,16 @@ export const Layout = () => {
   }
 
   const getPageTitle = (pathname: string) => {
-    if (pathname.includes('dashboard')) return 'Overview';
-    if (pathname.includes('tasks')) return 'Available Tasks';
-    if (pathname.includes('wallet')) return 'My Wallet';
-    if (pathname.includes('referrals')) return 'Referral Program';
-    if (pathname.includes('employer')) return 'Manage Campaigns';
-    if (pathname.includes('profile')) return 'Settings';
-    if (pathname.includes('admin/withdrawals')) return 'Payout Requests';
-    if (pathname.includes('admin')) return 'Admin Portal';
-    if (pathname.includes('submissions')) return 'My Work';
-    return 'DCTV Earn';
+    if (pathname.includes("dashboard")) return "Overview";
+    if (pathname.includes("tasks")) return "Available Tasks";
+    if (pathname.includes("wallet")) return "My Wallet";
+    if (pathname.includes("referrals")) return "Referral Program";
+    if (pathname.includes("employer")) return "Manage Campaigns";
+    if (pathname.includes("profile")) return "Settings";
+    if (pathname.includes("admin/withdrawals")) return "Payout Requests";
+    if (pathname.includes("admin")) return "Admin Portal";
+    if (pathname.includes("submissions")) return "My Work";
+    return "DCTV Earn";
   };
 
   // Mock notifications
@@ -214,10 +277,7 @@ export const Layout = () => {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Sidebar
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="md:ml-64 min-h-screen flex flex-col transition-all duration-300">
         <header className="h-16 bg-white border-b border-slate-200 sticky top-0 z-30 px-4 sm:px-6 flex items-center justify-between shadow-sm">
@@ -235,7 +295,10 @@ export const Layout = () => {
 
           <div className="flex items-center gap-4">
             <div className="hidden md:flex relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <Search
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                size={16}
+              />
               <input
                 type="text"
                 placeholder="Search..."
@@ -255,17 +318,29 @@ export const Layout = () => {
 
               {notificationOpen && (
                 <>
-                  <div className="fixed inset-0 z-10" onClick={() => setNotificationOpen(false)}></div>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setNotificationOpen(false)}
+                  ></div>
                   <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-slate-200 z-20">
                     <div className="p-4 border-b border-slate-100">
-                      <h3 className="font-semibold text-slate-900">Notifications</h3>
+                      <h3 className="font-semibold text-slate-900">
+                        Notifications
+                      </h3>
                     </div>
                     <div className="max-h-96 overflow-y-auto">
                       {notifications.length > 0 ? (
                         notifications.map((notification) => (
-                          <div key={notification.id} className="p-4 border-b border-slate-100 hover:bg-slate-50 cursor-pointer">
-                            <p className="text-sm text-slate-900">{notification.text}</p>
-                            <p className="text-xs text-slate-500 mt-1">{notification.time}</p>
+                          <div
+                            key={notification.id}
+                            className="p-4 border-b border-slate-100 hover:bg-slate-50 cursor-pointer"
+                          >
+                            <p className="text-sm text-slate-900">
+                              {notification.text}
+                            </p>
+                            <p className="text-xs text-slate-500 mt-1">
+                              {notification.time}
+                            </p>
                           </div>
                         ))
                       ) : (
@@ -276,7 +351,9 @@ export const Layout = () => {
                       )}
                     </div>
                     <div className="p-3 border-t border-slate-100 text-center">
-                      <button className="text-sm text-primary-600 hover:text-primary-700 font-medium">View All</button>
+                      <button className="text-sm text-primary-600 hover:text-primary-700 font-medium">
+                        View All
+                      </button>
                     </div>
                   </div>
                 </>
@@ -294,16 +371,26 @@ export const Layout = () => {
                   alt={user.name}
                   className="w-8 h-8 rounded-full border-2 border-slate-200"
                 />
-                <ChevronDown size={16} className="text-slate-500 hidden sm:block" />
+                <ChevronDown
+                  size={16}
+                  className="text-slate-500 hidden sm:block"
+                />
               </button>
 
               {userMenuOpen && (
                 <>
-                  <div className="fixed inset-0 z-10" onClick={() => setUserMenuOpen(false)}></div>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setUserMenuOpen(false)}
+                  ></div>
                   <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-slate-200 z-20">
                     <div className="p-3 border-b border-slate-100">
-                      <p className="font-medium text-slate-900 truncate">{user.name}</p>
-                      <p className="text-xs text-slate-500 truncate">{user.email}</p>
+                      <p className="font-medium text-slate-900 truncate">
+                        {user.name}
+                      </p>
+                      <p className="text-xs text-slate-500 truncate">
+                        {user.email}
+                      </p>
                     </div>
                     <div className="py-2">
                       <Link
