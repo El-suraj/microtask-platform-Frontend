@@ -131,23 +131,7 @@ export const Wallet = () => {
   const genId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
   // mock API: simulate network + response for deposit
-  const simulateDepositApi = async (amount: number) => {
-    return new Promise<{ success: boolean; transaction?: any }>((resolve) => {
-      setTimeout(() => {
-        const tx = {
-              id: withdrawal?.id ?? genId(),
-              type: "WITHDRAWAL",
-              method: method || withdrawal?.bankName || "Withdrawal",
-              date: withdrawal?.createdAt
-                ? new Date(withdrawal.createdAt).toLocaleString()
-                : new Date().toLocaleString(),
-                        status: (withdrawal?.status || "PENDING").toUpperCase(),
-              amount: -Math.abs(amt),
-              };
-        resolve({ success: true, transaction: tx });
-      }, 900);
-    });
-  };
+  
 
   const addTransactionLocally = (tx: any) => {
     setTransactions((prev: any[]) => [tx, ...prev]);
@@ -236,26 +220,43 @@ export const Wallet = () => {
 
     setProcessing(true);
     try {
-      const res = await simulateDepositApi(amt);
-      if (res.success && res.transaction) {
+      const res = await api.topUpWallet(amt);
+      
         setWallet((w: any) => ({
           ...w,
-          walletBalance: Number((w.walletBalance || 0) + amt),
+          walletBalance: res.walletBalance,
         }));
-        addTransactionLocally(res.transaction);
+        const tx = {
+          id: genId(),
+          type: "DEPOSIT",
+          method: "Deposit",
+          date: new Date().toLocaleString(),
+          status: "COMPLETED",
+          amount: Math.abs(amt),
+        }
+
+        addTransactionLocally(tx);
         showToast("Deposit successful", "success");
         setDepositModalOpen(false);
         setDepositAmount("");
-      } else {
-        showToast("Deposit failed", "error");
-      }
-    } catch (err) {
-      console.error(err);
-      showToast("Deposit failed", "error");
+      } catch (err:any) {
+        console.error("Deposit Error:", err);
+        showToast(err?.payload?.message ||"Deposit failed", "error");
     } finally {
       setProcessing(false);
     }
   };
+
+   // Format date helper
+  const formatDate = (iso?: string) => {
+    if (!iso) return "—";
+    try {
+      return new Date(iso.trim()).toLocaleString();
+    } catch {
+      return iso;
+    }
+  };
+
 
   return (
     <div className="space-y-6">
@@ -354,7 +355,7 @@ export const Wallet = () => {
                   <td className="px-6 py-4 font-medium text-slate-900 capitalize">
                     {tx.type.toLowerCase()}
                   </td>
-                  <td className="px-6 py-4 text-slate-500">{tx.date}</td>
+                  <td className="px-6 py-4 text-slate-500">{formatDate(tx.date)}</td>
                   <td className="px-6 py-4 text-slate-500">
                     {tx.method ?? "—"}
                   </td>
