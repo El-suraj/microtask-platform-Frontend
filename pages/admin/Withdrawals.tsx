@@ -30,8 +30,8 @@ export const Withdrawals = () => {
   const handleAction = async (id: string, action: 'approve' | 'reject') => {
     setProcessingId(id);
     try {
-      if (action === 'approve') await api.admin.approveWithdrawal(id);
-      else await api.admin.rejectWithdrawal(id);
+      if (action === 'approve') await api.approveWithdrawal(Number(id));
+      else await api.rejectWithdrawal(Number(id));
       
       // Update local state
       setRequests(prev => prev.map(req => 

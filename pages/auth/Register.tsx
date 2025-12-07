@@ -44,6 +44,7 @@ export const Register = () => {
         name: formData.name,
         email: formData.email,
         password: formData.password,
+        role: role, // role is sent for backend processing
       });
 
       // If user selected Employer role, show next steps / note to them

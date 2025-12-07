@@ -172,6 +172,15 @@ class APIClient {
       { email, password }
     );
   }
+  // Forgot / Reset Password
+  async forgotPassword(email: string) {
+  return this.request("POST", "/auth/forgot-password", { email });
+}
+// Reset password with token
+async resetPassword(token: string, password: string) {
+  return this.request("POST", `/auth/reset-password/${token}`, { password });
+}
+
 
   // User
   async getMe() {

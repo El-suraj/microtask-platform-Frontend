@@ -1,27 +1,33 @@
-import React from 'react';
-import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
-import { ToastProvider } from './components/Toast';
-import { Layout } from './components/Layout';
-import { Landing } from './pages/Landing';
-import { Auth } from './pages/Auth';
-import { Register } from './pages/auth/Register';
-import { ForgotPassword } from './pages/auth/ForgotPassword';
-import { VerifyEmail } from './pages/auth/VerifyEmail';
-import { Dashboard } from './pages/Dashboard';
-import { Tasks } from './pages/Tasks';
-import { TaskDetails } from './pages/TaskDetails';
-import { MySubmissions } from './pages/worker/MySubmissions';
-import { Wallet } from './pages/Wallet';
-import { Referrals } from './pages/Referrals';
-import { Profile } from './pages/Profile';
-import { Employer } from './pages/Employer';
-import { TaskReview } from './pages/employer/TaskReview';
-import { Admin } from './pages/Admin';
-import { Withdrawals } from './pages/admin/Withdrawals';
-import { AdminAppeals } from './pages/admin/AdminAppeals';
-import { AdminTasks } from './pages/admin/AdminTasks';
-import { AdminSubmissions } from './pages/admin/AdminSubmissions';
+import React from "react";
+import {
+  HashRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext";
+import { ToastProvider } from "./components/Toast";
+import { Layout } from "./components/Layout";
+import { Landing } from "./pages/Landing";
+import { Auth } from "./pages/Auth";
+import { Register } from "./pages/auth/Register";
+import { ForgotPassword } from "./pages/auth/ForgotPassword";
+import { VerifyEmail } from "./pages/auth/VerifyEmail";
+import { Dashboard } from "./pages/Dashboard";
+import { Tasks } from "./pages/Tasks";
+import { TaskDetails } from "./pages/TaskDetails";
+import { MySubmissions } from "./pages/worker/MySubmissions";
+import { Wallet } from "./pages/Wallet";
+import { Referrals } from "./pages/Referrals";
+import { Profile } from "./pages/Profile";
+import { Employer } from "./pages/Employer";
+import { TaskReview } from "./pages/employer/TaskReview";
+import { Admin } from "./pages/Admin";
+import { Withdrawals } from "./pages/admin/Withdrawals";
+import { AdminAppeals } from "./pages/admin/AdminAppeals";
+import { AdminTasks } from "./pages/admin/AdminTasks";
+import { AdminSubmissions } from "./pages/admin/AdminSubmissions";
+import { ResetPassword } from "./pages/auth/ResetPassword";
 
 const App = () => {
   return (
@@ -34,6 +40,7 @@ const App = () => {
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
 
             {/* Protected Routes */}
             <Route element={<Layout />}>
@@ -51,7 +58,10 @@ const App = () => {
 
               {/* Employer Routes */}
               <Route path="/employer" element={<Employer />} />
-              <Route path="/employer/tasks/:id/review" element={<TaskReview />} />
+              <Route
+                path="/employer/tasks/:id/review"
+                element={<TaskReview />}
+              />
 
               {/* Admin Routes */}
               <Route path="/admin" element={<Admin />} />

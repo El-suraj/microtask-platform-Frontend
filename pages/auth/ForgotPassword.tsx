@@ -3,22 +3,35 @@ import { Link } from 'react-router-dom';
 import { Button, Input, Card } from '../../components/ui';
 import { ArrowLeft, Mail, CheckCircle, Loader2 } from 'lucide-react';
 import { Logo } from '../../components/Logo';
+import  api  from '../../services/api';
 
 export const ForgotPassword = () => {
     const [email, setEmail] = useState('');
     const [submitted, setSubmitted] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
+   const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
 
-        // Simulate API call - backend dev will implement
-        setTimeout(() => {
-            setLoading(false);
-            setSubmitted(true);
-        }, 1500);
-    };
+    try {
+        const res = await api.forgotPassword(email);
+        console.log("Forgot password response:", res);
+
+        // Success → show success screen
+        setSubmitted(true);
+
+    } catch (error: any) {
+        console.error("Forgot password error:", error);
+
+        alert(
+            error?.payload?.message ||
+            "Failed to send reset email. Please try again."
+        );
+    } finally {
+        setLoading(false);
+    }
+};
 
     if (submitted) {
         return (
