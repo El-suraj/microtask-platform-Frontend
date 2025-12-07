@@ -321,13 +321,23 @@ async resetPassword(token: string, password: string) {
   async getMyWallet() {
     return this.request<{ walletBalance: number }>("GET", "/wallet/me");
   }
-  async topUpWallet(amount: number) {
+  async topUpWallet(amount: number, method: string) {
     return this.request<{ message: string; walletBalance: number }>(
       "POST",
       "/wallet/topup",
-      { amount }
+      { amount, method, }
     );
   }
+// approve deposit (admin)
+async adminApproveDeposit(id: number){
+  return this.request("PUT", `/wallet/deposits/${id}/approve`);
+}
+
+// reject deposit (admin)
+async adminRejectDeposit(id: number){
+  return  this.request("PUT", `/wallet/deposits/${id}/reject`);
+}
+
   async requestWithdrawal(
     amount: number,
     bankName: string,

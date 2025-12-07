@@ -220,27 +220,24 @@ export const Wallet = () => {
 
     setProcessing(true);
     try {
-      const res = await api.topUpWallet(amt);
-      
-        setWallet((w: any) => ({
-          ...w,
-          walletBalance: res.walletBalance,
-        }));
-        const tx = {
-          id: genId(),
-          type: "DEPOSIT",
-          method: "Deposit",
-          date: new Date().toLocaleString(),
-          status: "COMPLETED",
-          amount: Math.abs(amt),
-        }
+      const res = await api.topUpWallet(amt, "Deposit");
+      const tx = res.transaction;
 
-        addTransactionLocally(tx);
-        showToast("Deposit successful", "success");
+      addTransactionLocally(
+      {
+          id: tx.id,
+          type: "DEPOSIT",
+          method: tx.method,
+          date: new Date(tx.createdAt).toLocaleString(),
+          status: tx.status.toUpperCase(),
+          amount: tx.amount,
+        });
+
+        
+        showToast("Deposit Requested", "success");
         setDepositModalOpen(false);
         setDepositAmount("");
       } catch (err:any) {
-        console.error("Deposit Error:", err);
         showToast(err?.payload?.message ||"Deposit failed", "error");
     } finally {
       setProcessing(false);
