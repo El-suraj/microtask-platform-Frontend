@@ -1,0 +1,9 @@
+services:
+  frontend:
+    image: my-frontend
+    build:
+      context: .
+      args:
+        DATABASE_URL: https://api.dctvearn.com
+    ports:
+      - "3001:80"
