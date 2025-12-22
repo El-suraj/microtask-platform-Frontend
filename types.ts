@@ -1,0 +1,137 @@
+export enum UserRole {
+  WORKER = 'user',
+  EMPLOYER = 'user',
+  ADMIN = 'admin'
+}
+
+export enum TaskStatus {
+  OPEN = 'OPEN',
+  FILLED = 'FILLED',
+  COMPLETED = 'COMPLETED',
+  PAUSED = 'PAUSED'
+}
+
+export enum SubmissionStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED'
+}
+
+export enum AccountStatus {
+  ACTIVE = 'ACTIVE',
+  SUSPENDED = 'SUSPENDED',
+  BANNED = 'BANNED',
+  UNVERIFIED = 'UNVERIFIED'
+}
+
+// export interface User {
+//   id: string;
+//   name: string;
+//   email: string;
+//   role: UserRole;
+//   avatar: string;
+//   balance: number;
+// }
+
+export interface Task {
+  id: string;
+  title: string;
+  description: string;
+  reward: number;
+  category: string;
+  difficulty: 'Easy' | 'Medium' | 'Hard';
+  spotsTotal: number;
+  spotsTaken: number;
+  status: TaskStatus;
+  employerName: string;
+  timeEstimate: string;
+}
+
+export interface Submission {
+  id: string;
+  taskId: string;
+  taskTitle: string;
+  workerName: string; // Hydrated for UI
+  proofContent: string; // Text or URL
+  submittedAt: string;
+  status: SubmissionStatus;
+  reward: number;
+}
+
+export interface Transaction {
+  id: string;
+  type: 'DEPOSIT' | 'WITHDRAWAL' | 'EARNING' | 'REFERRAL';
+  amount: number;
+  date: string;
+  status: 'COMPLETED' | 'PENDING' | 'FAILED';
+}
+
+export interface WithdrawalRequest {
+  id: string;
+  userId: string;
+  userName: string;
+  amount: number;
+  method: string; // PayPal, Bank, etc.
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  method: string; // PayPal, Bank, etc.
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  date: string;
+}
+
+export interface Deposit {
+  id: number;
+  userId: number;
+  amount: number;
+  method: string;
+  type: string;
+  receiptImage: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  createdAt: string;
+  user?: {
+    id: number;
+    name: string;
+    email: string;
+  };
+  rejectionReason?: string;
+}
+
+export interface DepositSettings {
+  cryptoAddress: string;
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+}
+
+// API Payloads
+export interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+export interface RegisterPayload {
+  name: string;
+  email: string;
+  username: string;
+  role: UserRole;
+  phone: string;
+  password: string;
+}
+
+export interface CreateTaskPayload {
+  title: string;
+  description: string;
+  category: string;
+  reward: number;
+  spotsTotal: number;
+  difficulty: 'Easy' | 'Medium' | 'Hard';
+  timeEstimate: string;
+}
+
+export interface UserActivity {
+  id: string;
+  userId: string;
+  action: string;
+  ipAddress: string;
+  device: string;
+  timestamp: string;
+}
