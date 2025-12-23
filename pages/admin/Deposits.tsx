@@ -234,9 +234,9 @@ const handleSaveSettings = async (e: React.FormEvent) => {
                             <div className="font-medium text-slate-900">
                               {deposit.user?.name || 'Unknown'}
                             </div>
-                            <div className="text-xs text-slate-400">
+                            {/* <div className="text-xs text-slate-400">
                               ID: {deposit.userId}
-                            </div>
+                            </div> */}
                           </div>
                         </td>
                         <td className="px-6 py-4 font-bold text-slate-900">

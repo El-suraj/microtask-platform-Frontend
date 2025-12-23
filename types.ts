@@ -45,6 +45,7 @@ export interface Task {
   status: TaskStatus;
   employerName: string;
   timeEstimate: string;
+  link?: string;
 }
 
 export interface Submission {

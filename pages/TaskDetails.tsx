@@ -28,11 +28,14 @@ export const TaskDetails = () => {
   const { showToast } = useToast();
 
   React.useEffect(() => {
+    
     async function fetchTask() {
+     
       if (id) {
         try {
           const taskData = await api.getTask(Number(id));
           setTask(taskData);
+          console.log("TASK RESPONSE:", taskData);
         } catch (error) {
           console.error("Failed to fetch task:", error);
           showToast("Failed to load task", "error");
@@ -41,8 +44,10 @@ export const TaskDetails = () => {
         }
       }
     }
+     
     fetchTask();
   }, [id]);
+
 
   const handleFileSelect = (file: File) => {
     setUploadedFile(file);
