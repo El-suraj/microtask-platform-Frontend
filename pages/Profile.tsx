@@ -13,113 +13,62 @@ export const Profile = () => {
   const [loadingPicture, setLoadingPicture] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [profileImage, setProfileImage] = useState<string>("");
-
-  // Bank details state
-  const [bankName, setBankName] = useState("");
-  const [accountNumber, setAccountNumber] = useState("");
-  const [accountName, setAccountName] = useState("");
-
-  // Basic editable profile fields (controlled)
   const [fullName, setFullName] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
 
-  useEffect(() => {
-    async function fetchUser() {
-      try {
-        const userData = await api.getMe();
-        const u = (userData as any).user ?? userData;
-        setUser(u);
-        setProfileImage(
-          u.profileImage ||
-            u.avatar ||
-            u.profileImage ||
-            "../components/avatar.png"
-        );
-        // Load saved bank details
-        setBankName(u.bankName || "");
-        setAccountNumber(u.accountNumber || "");
-        setAccountName(u.accountName || "");
+  const [bankName, setBankName] = useState("");
+  const [accountName, setAccountName] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [bankDetailId, setBankDetailId] = useState<number | null>(null);
 
-        // populate editable fields
+  useEffect(() => {
+    fetchProfileData();
+  }, []);
+
+  const fetchProfileData = async () => {
+    try {
+      setLoadingProfile(true);
+     const userRes = await api.getMe();
+        const u = userRes.user || userRes;
+        setUser(u) ;
         setFullName(u.name || "");
         setUsername(u.username || "");
         setEmail(u.email || "");
         setPhone(u.phone || "");
-      } catch (error) {
-        console.error("Failed to fetch user:", error);
-        showToast("Failed to load user data", "error");
+        setProfileImage(u.profileImage || "");
+
+      const bankRes = await api.listBankDetails();
+      if (bankRes?.bankDetails?.length > 0) {
+        const primary = bankRes.bankDetails.find((b) => b.isPrimary) || bankRes.bankDetails[0];
+        setBankName(primary.bankName);
+        setAccountName(primary.accountHolder || "");
+        setAccountNumber(primary.accountNumberMasked); // Note: this might be masked, but for editing we might need full? API doesn't seem to return full on list. 
+        setBankDetailId(primary.id);
       }
+    } catch (error) {
+      console.error(error);
+      showToast("Failed to load profile", "error");
+    } finally {
+      setLoadingProfile(false);
     }
-    fetchUser();
-  }, [showToast]);
-
-  const handlePictureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const validTypes = ["image/png", "image/jpeg", "image/jpg"];
-    const maxSize = 5 * 1024 * 1024;
-    if (!validTypes.includes(file.type)) {
-      showToast("Only PNG/JPG images allowed", "error");
-      return;
-    }
-    if (file.size > maxSize) {
-      showToast("Image must be <= 5MB", "error");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const dataUrl = reader.result as string;
-      setProfileImage(dataUrl);
-
-      // Persist to backend using updateUser (api.updateUser accepts Partial<User>)
-      if (!user?.id) {
-        showToast("User not loaded", "error");
-        return;
-      }
-      setLoadingPicture(true);
-      try {
-        // send base64 string to profileImage field (backend must accept base64)
-        const updated = await api.updateUser(user.id, {
-          profileImage: dataUrl,
-        });
-        // api.updateUser returns updated user object per api.ts -> updateUser returns User
-        setUser(updated);
-        setProfileImage((updated as any).profileImage || dataUrl);
-        showToast("Profile picture updated successfully", "success");
-      } catch (err: any) {
-        console.error("Upload failed", err);
-        showToast(
-          err?.payload?.message ?? "Failed to upload profile picture",
-          "error"
-        );
-      } finally {
-        setLoadingPicture(false);
-      }
-    };
-    reader.readAsDataURL(file);
   };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user?.id) return;
-    setLoadingProfile(true);
+    if (!user) return;
     try {
-      const payload: Partial<any> = {
+      setLoadingProfile(true);
+      const updated = await api.updateUser(user.id, {
         name: fullName,
-        username,
-        email,
         phone,
-      };
-      const updated = await api.updateUser(user.id, payload);
+        // email: email, // Usually email update requires re-verification, assuming handled or not allowed here if strict
+      });
       setUser(updated);
-      showToast("Profile information updated successfully", "success");
-    } catch (err: any) {
-      console.error("Update profile failed", err);
-      showToast(err?.payload?.message ?? "Failed to update profile", "error");
+      showToast("Profile updated successfully", "success");
+    } catch (error: any) {
+      showToast(error.message || "Failed to update profile", "error");
     } finally {
       setLoadingProfile(false);
     }
@@ -127,34 +76,51 @@ export const Profile = () => {
 
   const handleUpdateBankDetails = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!bankName || !accountNumber || !accountName) {
-      showToast("Please fill in all bank details", "error");
-      return;
-    }
-    if (!user?.id) {
-      showToast("User not loaded", "error");
-      return;
-    }
-    setLoadingBankDetails(true);
     try {
-      // Persist bank details on user record (api.updateUser supports Partial<User>)
-      const updated = await api.updateUser(user.id, {
-        bankName,
-        accountNumber,
-        accountName,
-      });
-      setUser(updated);
-      showToast("Bank details saved successfully", "success");
-    } catch (err: any) {
-      console.error("Save bank details failed", err);
-      showToast(
-        err?.payload?.message ?? "Failed to save bank details",
-        "error"
-      );
+      setLoadingBankDetails(true);
+      if (bankDetailId) {
+        await api.updateBankDetail(bankDetailId, {
+          bankName,
+          accountNumber,
+          accountHolder: accountName,
+        });
+      } else {
+        await api.addBankDetail({
+          bankName,
+          accountNumber,
+          accountHolder: accountName,
+          isPrimary: true,
+        });
+        // Refresh to get the ID
+        fetchProfileData();
+      }
+      showToast("Bank details saved", "success");
+    } catch (error: any) {
+      showToast(error.message || "Failed to save bank details", "error");
     } finally {
       setLoadingBankDetails(false);
     }
   };
+
+ const handlePictureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  if (!e.target.files || !e.target.files[0]) return;
+
+  try {
+    setLoadingPicture(true);
+    const formData = new FormData();
+    formData.append("image", e.target.files[0]);
+
+    const res = await api.uploadProfileImage(formData);
+
+    setProfileImage(res.profileImage);
+    setUser(res.user);
+    showToast("Profile picture updated", "success");
+  } catch (err: any) {
+    showToast(err.message || "Failed to upload image", "error");
+  } finally {
+    setLoadingPicture(false);
+  }
+};
 
   const handleUpdatePassword = (e: React.FormEvent) => {
     e.preventDefault();
@@ -180,7 +146,7 @@ export const Profile = () => {
           <Card className="p-6 text-center h-fit">
             <div className="relative w-24 h-24 mx-auto mb-4">
               <img
-                src={profileImage || "../components/avatar.png"}
+                src={profileImage || "/avatar.png"}
                 alt="Profile"
                 className="w-full h-full rounded-full object-cover border-4 border-slate-50"
               />

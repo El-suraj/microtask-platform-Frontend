@@ -3,18 +3,20 @@ import { Card, Button, Badge, StatCard } from '../../components/ui';
 import api, { Appeal } from "../../services/api";
 import { Check, X, Loader2, AlertTriangle, MessageSquare } from 'lucide-react';
 import { useToast } from '../../components/Toast';
+import { useNavigate } from 'react-router-dom';
 
 export const AdminAppeals = () => {
   const [appeals, setAppeals] = useState<Appeal[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<number | null>(null);
   const { showToast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchAppeals = async () => {
       try {
         const data = await api.listAppeals();
-        setAppeals(Array.isArray(data) ? data : data.appeals || []);
+         setAppeals(Array.isArray(data) ? data : data.appeals || []);
       } catch (err) {
         console.error("Failed to fetch appeals", err);
         showToast("Failed to load appeals", "error");
@@ -29,13 +31,13 @@ export const AdminAppeals = () => {
     setProcessingId(id);
     try {
       await api.resolveAppeal(id, { decision });
-      
-      setAppeals(prev => prev.map(a => 
+
+      setAppeals(prev => prev.map(a =>
         a.id === id ? { ...a, status: decision === 'approve' ? 'APPROVED' : 'REJECTED', adminDecision: decision } : a
       ));
-      
+
       showToast(
-        `Appeal ${decision}d successfully`, 
+        `Appeal ${decision}d successfully`,
         "success"
       );
     } catch (e) {
@@ -52,8 +54,11 @@ export const AdminAppeals = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center">      
         <div>
+           <Button onClick={() => navigate("/admin")} className="mt-4">
+            Back to Overview
+          </Button>
           <h2 className="text-2xl font-bold text-slate-900">Appeals Management</h2>
           <p className="text-slate-500">Review and resolve user appeals for rejected submissions.</p>
         </div>
@@ -95,8 +100,8 @@ export const AdminAppeals = () => {
                     </td>
                     <td className="px-6 py-4">
                       <Badge color={
-                        appeal.status === 'approved' ? 'green' : 
-                        appeal.status === 'rejected' ? 'red' : 'yellow'
+                        appeal.status === 'approved' ? 'green' :
+                          appeal.status === 'rejected' ? 'red' : 'yellow'
                       }>
                         {appeal.status || 'pending'}
                       </Badge>
@@ -104,17 +109,17 @@ export const AdminAppeals = () => {
                     <td className="px-6 py-4 text-right">
                       {(!appeal.status || appeal.status === 'pending' || appeal.status === 'approved') && (
                         <div className="flex justify-end gap-2">
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
+                          <Button
+                            size="sm"
+                            variant="outline"
                             className="text-red-600 hover:bg-red-50 border-red-200"
                             onClick={() => handleResolve(appeal.id, 'reject')}
                             disabled={processingId === appeal.id}
                           >
                             <X size={16} />
                           </Button>
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             className="bg-green-600 hover:bg-green-700 border-none shadow-none text-white"
                             onClick={() => handleResolve(appeal.id, 'approve')}
                             disabled={processingId === appeal.id}

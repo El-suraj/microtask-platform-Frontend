@@ -4,12 +4,14 @@ import api, { Task } from "../../services/api";
 import { Loader2, Briefcase, Eye, Trash2 } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 export const AdminTasks = () => {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [loading, setLoading] = useState(true);
     const [processingId, setProcessingId] = useState<number | null>(null);
     const { showToast } = useToast();
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchTasks = async () => {
@@ -48,6 +50,9 @@ export const AdminTasks = () => {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
+                    <Button onClick={() => navigate("/admin")} className="mt-4">
+                        Back to Overview
+                    </Button>
                     <h2 className="text-2xl font-bold text-slate-900">Tasks Management</h2>
                     <p className="text-slate-500">Monitor and manage all tasks on the platform.</p>
                 </div>

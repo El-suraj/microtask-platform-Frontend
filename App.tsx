@@ -27,7 +27,9 @@ import { Withdrawals } from "./pages/admin/Withdrawals";
 import { AdminAppeals } from "./pages/admin/AdminAppeals";
 import { AdminTasks } from "./pages/admin/AdminTasks";
 import { AdminSubmissions } from "./pages/admin/AdminSubmissions";
+import { AdminDeposits } from "./pages/admin/Deposits";
 import { ResetPassword } from "./pages/auth/ResetPassword";
+import { TopUp } from "./pages/topUp";
 
 const App = () => {
   return (
@@ -68,7 +70,9 @@ const App = () => {
               <Route path="/admin/withdrawals" element={<Withdrawals />} />
               <Route path="/admin/appeals" element={<AdminAppeals />} />
               <Route path="/admin/tasks" element={<AdminTasks />} />
+              <Route path="/topup" element={<TopUp />} />
               <Route path="/admin/submissions" element={<AdminSubmissions />} />
+              <Route path="/admin/deposits" element={<AdminDeposits />} />
             </Route>
 
             {/* Fallback */}

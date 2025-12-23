@@ -1,25 +1,39 @@
-// Minimal fetch-based TypeScript client for the backend in src/app.js
+// services/api.ts - Unified TypeScript API client
 
-type Method = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+type Method = "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "HEAD";
 
-export type User = {
+export interface User {
+    id: number;
+    name: string;
+    username: string;
+    email: string;
+    phone?: string;
+    walletBalance: number;
+    role: string;
+    status?: 'ACTIVE' | 'BANNED' | 'SUSPENDED';
+    walletStatus?: 'ACTIVE' | 'FROZEN';
+    createdAt: string;
+    banReason?: string;
+    bannedAt?: string;
+    suspendedUntil?: string;
+    walletFreezeReason?: string;
+    walletFrozenAt?: string;
+}
+
+export type Deposit = {
   id: number;
-  name: string;
-  email: string;
-  phone?: string | null;
-  role?: string;
-  walletBalance?: number;
+  userId: number;
+  amount: number;
+  method: string;
+  status: string;
   createdAt?: string;
-  profileImage?: string | null;
-  bankName?: string | null;
-  accountName?: string | null;
-  accountNumber?: string | null;
 };
 
 export type Task = {
   id: number;
   title: string;
   description?: string | null;
+  link?: string | null;
   reward?: number;
   deadline?: string | null;
   totalSlots?: number;
@@ -81,11 +95,11 @@ export type Transaction = {
   taskId?: number | null;
   createdAt?: string;
 };
-// const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const DEFAULT_BASE =
-  (import.meta as any).env?.DATABASE_URL ??
-  "https://microtask-platform-production.up.railway.app";
+  process.env?.VITE_API_BASE_URL ??
+  process.env.DATABASE_URL ??
+  "http://localhost:5000";
 
 class APIClient {
   private baseUrl = DEFAULT_BASE;
@@ -95,12 +109,15 @@ class APIClient {
   setBaseUrl(url: string) {
     this.baseUrl = url;
   }
+  
   setToken(token: string | null) {
     this.token = token;
   }
+  
   clearToken() {
     this.token = null;
   }
+  
   setOnUnauthorized(cb?: () => void) {
     this.onUnauthorized = cb;
   }
@@ -152,10 +169,11 @@ class APIClient {
     return payload as T;
   }
 
-  // Auth
+  // ==================== Auth ====================
   async register(data: {
     name: string;
     email: string;
+    username: string;
     password: string;
     phone?: string;
   }) {
@@ -165,6 +183,21 @@ class APIClient {
       data
     );
   }
+  async verifyEmail(data: { userId: number; otp: string }) {
+  return this.request<{ message: string; kycLevel: number }>(
+    "POST",
+    "/auth/verify-email",
+    data
+  );
+  }
+
+  async resendOtp(userId: number) {
+  return this.request<{ message: string }>(
+    "POST",
+    "/auth/resend-otp",
+    { userId }
+  );
+  }
   async login(email: string, password: string) {
     return this.request<{ user: User; token: string }>(
       "POST",
@@ -172,28 +205,39 @@ class APIClient {
       { email, password }
     );
   }
-  // Forgot / Reset Password
+
   async forgotPassword(email: string) {
-  return this.request("POST", "/auth/forgot-password", { email });
-}
-// Reset password with token
-async resetPassword(token: string, password: string) {
-  return this.request("POST", `/auth/reset-password/${token}`, { password });
-}
+    return this.request("POST", "/auth/forgot-password", { email });
+  }
 
+  async resetPassword(token: string, password: string) {
+    return this.request("POST", `/auth/reset-password/${token}`, { password });
+  }
 
-  // User
+  // ==================== User ====================
   async getMe() {
     return this.request<{ user: User }>("GET", "/user/me");
   }
+
   async getUser(id: number) {
     return this.request<User>("GET", `/user/${id}`);
   }
+
   async updateUser(id: number, payload: Partial<User>) {
     return this.request<User>("PUT", `/user/${id}`, payload);
   }
+ async uploadProfileImage(id: number, formData: FormData) {
+  return this.request<User>(
+    "PUT",
+    `/user/${id}/profile-image`,
+    formData,
+    { isForm: true }
+  );
+}
 
-  // Tasks
+
+
+  // ==================== Tasks ====================
   async listTasks(params?: {
     status?: string;
     q?: string;
@@ -202,12 +246,15 @@ async resetPassword(token: string, password: string) {
   }) {
     return this.request<Task[]>("GET", "/tasks", undefined, { query: params });
   }
+
   async getTask(id: number) {
     return this.request<Task>("GET", `/tasks/${id}`);
   }
+
   async createTask(payload: {
     title: string;
     description?: string;
+    link?: string;
     reward: number;
     totalSlots: number;
     proofType?: string;
@@ -219,97 +266,194 @@ async resetPassword(token: string, password: string) {
       payload
     );
   }
+
   async updateTask(id: number, payload: Partial<Task>) {
     return this.request<Task>("PUT", `/tasks/${id}`, payload);
   }
+
   async deleteTask(id: number) {
     return this.request<{ message: string }>("DELETE", `/tasks/${id}`);
   }
 
-  // Submissions (FormData for images)
+  // ==================== Submissions ====================
   async createSubmission(fd: FormData) {
     return this.request<{ message: string; submission: Submission }>(
       "POST",
-      "/submit-task",
+      "/submit",
       fd,
       { isForm: true }
     );
   }
-  // Try a few possible routes for "my submissions" — many backends vary.
+
   async listMySubmissions() {
-    const candidates = [
-      "/dashboard/my-submissions",
-    ];
+    const candidates = ["/dashboard/my-submissions"];
 
     let lastErr: any = null;
     for (const path of candidates) {
       try {
         const res = await this.request<any>("GET", path);
-        // normalize: either an array or { submissions: [...] }
         if (Array.isArray(res)) return res as Submission[];
         if (res && Array.isArray(res.submissions))
           return res.submissions as Submission[];
-        // if backend returns { data: [...] }
         if (res && Array.isArray(res.data)) return res.data as Submission[];
-        // otherwise return whatever parsed into an array if possible
         return (res as any) ?? [];
       } catch (err: any) {
         lastErr = err;
-        if (err?.status === 404) {
-          // try next candidate
-          continue;
-        }
-        // non-404 fatal error: rethrow
+        if (err?.status === 404) continue;
         throw err;
       }
     }
-    // none matched
     throw lastErr ?? new Error("my-submissions endpoint not found");
   }
+
   async getSubmission(id: number) {
     return this.request<Submission>(
       "GET",
       `/dashboard/my-submissions/${id}`
     );
   }
-  // Appeal - common patterns supported
+
+  // ==================== Appeals ====================
   async submitAppeal(submissionId: number, message: string) {
-    // route param preferred
     return this.request<{ message: string; appeal: Appeal }>(
       "POST",
       `/submit-task/${submissionId}/appeal`,
       { message }
     );
   }
+
   async listAppeals(submissionId?: number) {
     return this.request<Appeal[]>("GET", "/admin/appeals", undefined, {
       query: submissionId ? { submissionId } : undefined,
     });
   }
-  // Admin actions
+
+  // ==================== Admin - Users ====================
   async adminGetAllUsers() {
     return this.request<User[]>("GET", "/admin/users");
   }
+
+  /**
+   * Get detailed user information (Admin only)
+   */
+  async getUserDetails(userId: number | string) {
+    try {
+      const response = await this.request<any>("GET", `/admin/users/${userId}`);
+      console.log('User Details Response:', response);
+      return response;
+    } catch (error) {
+      console.error('Failed to fetch user details:', error);
+      throw error;
+    }
+  }
+async getUserDeposits() {
+  return this.request<{
+    success: boolean;
+    deposits: any[];
+  }>("GET", "/topUp/deposits/history");
+}
+  /**
+   * Ban a user (Admin only)
+   */
+  async banUser(data: { userId: number; reason: string }) {
+    try {
+      const response = await this.request<any>("POST", "/admin/users/ban", data);
+      return response;
+    } catch (error) {
+      console.error('Failed to ban user:', error);
+      throw error;
+    }
+  }
+
+  async adminBanUser(id: number, reason: string, freezeWallet: boolean) {
+    return this.request("POST", `/admin/users/${id}/ban`, { reason, freezeWallet });
+  }
+
+  /**
+   * Unban a user (Admin only)
+   */
+  async unbanUser(userId: number) {
+    try {
+      const response = await this.request<any>("POST", `/admin/users/unban/${userId}`);
+      return response;
+    } catch (error) {
+      console.error('Failed to unban user:', error);
+      throw error;
+    }
+  }
+
+  async adminSuspendUser(id: number, reason: string, endDate: string, freezeWallet: boolean) {
+    return this.request("POST", `/admin/users/${id}/suspend`, { reason, endDate, freezeWallet });
+  }
+
+  async adminActivateUser(id: number) {
+    return this.request("POST", `/admin/users/${id}/activate`);
+  }
+
+  /**
+   * Freeze user's wallet (Admin only)
+   */
+  async freezeWallet(data: { userId: number; reason: string }) {
+    try {
+      const response = await this.request<any>("POST", "/admin/users/freeze-wallet", data);
+      return response;
+    } catch (error) {
+      console.error('Failed to freeze wallet:', error);
+      throw error;
+    }
+  }
+
+  async adminFreezeWallet(id: number) {
+    return this.request("POST", `/admin/users/${id}/freeze-wallet`);
+  }
+
+  /**
+   * Unfreeze user's wallet (Admin only)
+   */
+  async unfreezeWallet(userId: number) {
+    try {
+      const response = await this.request<any>("POST", `/admin/users/unfreeze-wallet/${userId}`);
+      return response;
+    } catch (error) {
+      console.error('Failed to unfreeze wallet:', error);
+      throw error;
+    }
+  }
+
+  async adminUnfreezeWallet(id: number) {
+    return this.request("POST", `/admin/users/${id}/unfreeze-wallet`);
+  }
+
+  // ==================== Admin - Tasks ====================
   async adminGetAllTasks() {
     return this.request<Task[]>("GET", "/admin/tasks");
   }
+
+  // ==================== Admin - Submissions ====================
   async adminGetAllSubmissions() {
     return this.request<Submission[]>("GET", "/admin/submissions");
   }
+
   async approveSubmission(submissionId: number) {
     return this.request("PUT", `/admin/submissions/${submissionId}/approve`);
   }
+
   async rejectSubmission(submissionId: number, note?: string) {
     return this.request("PUT", `/admin/submissions/${submissionId}/reject`, {
       note,
     });
   }
+
+  // ==================== Admin - Withdrawals ====================
   async adminGetWithdrawals() {
     return this.request<Withdrawal[]>("GET", "/admin/withdrawals");
   }
+
+  // ==================== Admin - Appeals ====================
   async adminGetAllAppeals() {
     return this.request<Appeal[]>("GET", "/admin/appeals");
   }
+
   async resolveAppeal(
     appealId: number,
     action: { decision: "approve" | "reject"; note?: string }
@@ -317,27 +461,97 @@ async resetPassword(token: string, password: string) {
     return this.request("PUT", `/admin/appeals/${appealId}/resolve`, action);
   }
 
-  // Wallet / Topup / Withdrawal
+  // ==================== Admin - Deposits ====================
+  async adminGetDeposits() {
+    return this.request<Deposit[]>("GET", "/admin/deposits");
+  }
+
+  async adminApproveDeposit(id: number) {
+    return this.request("PUT", `/admin/deposits/${id}`, {
+      action: "approve"
+    });
+  }
+
+  async adminRejectDeposit(id: number) {
+    return this.request("PUT", `/admin/deposits/${id}`, {
+      action: "reject"
+    });
+  }
+
+  async adminGetDepositSettings() {
+  return this.request<{
+    success: boolean;
+    settings: {
+      id: number;
+      cryptoAddress: string;
+      bankName: string;
+      accountNumber: string;
+      accountName: string;
+    };
+  }>("GET", "/admin/settings/deposits");
+}
+
+  async adminUpdateDepositSettings(settings: {
+  cryptoAddress?: string;
+  bankName?: string;
+  accountNumber?: string;
+  accountName?: string;
+}) {
+  return this.request("PUT", "/admin/settings/deposits", settings);
+}
+async getDepositSettings() {
+  return this.request<{
+    success: boolean;
+    settings: {
+      id: number;
+      cryptoAddress: string;
+      bankName: string;
+      accountNumber: string;
+      accountName: string;
+    };
+  }>("GET", "/admin/settings/deposits");
+}
+
+async adminGetBankAccounts(){
+    return this.request<{
+    success: boolean;
+    settings: {
+      id: number;
+      bankName: string;
+      accountNumber: string;
+      accountName: string;
+    };
+  }>("GET", "/admin/settings/deposits/bankAccounts");
+}
+async adminGetCryptoAddresses(){
+    return this.request<{
+    success: boolean;
+    settings: {
+      id: number;
+      cryptoAddress: string;
+    };
+  }>("GET", "/admin/settings/deposits/bankAccounts");
+}
+
+
+  // ==================== Wallet ====================
   async getMyWallet() {
     return this.request<{ walletBalance: number }>("GET", "/wallet/me");
   }
+  async createDepositRequest(formData: FormData) {
+  return this.request<{
+    success: boolean;
+    message: string;
+    deposit: any;
+  }>("POST", "/topup/deposit", formData, { isForm: true });
+}
   async topUpWallet(amount: number, method: string) {
     return this.request<{ message: string; walletBalance: number }>(
       "POST",
       "/wallet/topup",
-      { amount, method, }
+      { amount, method }
     );
   }
-// approve deposit (admin)
-async adminApproveDeposit(id: number){
-  return this.request("PUT", `/wallet/deposits/${id}/approve`);
-}
-
-// reject deposit (admin)
-async adminRejectDeposit(id: number){
-  return  this.request("PUT", `/wallet/deposits/${id}/reject`);
-}
-
   async requestWithdrawal(
     amount: number,
     bankName: string,
@@ -346,15 +560,10 @@ async adminRejectDeposit(id: number){
     return this.request<{ message: string; withdrawal: Withdrawal }>(
       "POST",
       "/wallet/withdraw",
-      {
-        amount,
-        bankName,
-        accountNumber,
-      }
+      { amount, bankName, accountNumber }
     );
   }
   async listWithdrawals(userSpecific = true) {
-    // GET /wallet/withdrawals returns either user-specific or admin view depending on role
     return this.request<Withdrawal[]>("GET", "/wallet/withdrawals");
   }
   async approveWithdrawal(withdrawalId: number) {
@@ -376,13 +585,15 @@ async adminRejectDeposit(id: number){
   }) {
     return this.request<{ message: string; bankDetail: BankDetail }>(
       "POST",
-      "/wallet/bank",
+      "/dashboard/addbankdetails",
       payload
     );
   }
+
   async listBankDetails() {
-    return this.request<{ bankDetails: BankDetail[] }>("GET", "/wallet/bank");
+    return this.request<{ bankDetails: BankDetail[] }>("GET", "/dashboard/listbankdetails");
   }
+
   async updateBankDetail(
     id: number,
     payload: Partial<{
@@ -393,26 +604,29 @@ async adminRejectDeposit(id: number){
   ) {
     return this.request<{ message: string; bankDetail: BankDetail }>(
       "PUT",
-      `/wallet/bank/${id}`,
+      `/dashboard/updatebankdetails/${id}`,
       payload
     );
   }
+
   async setPrimaryBankDetail(id: number) {
     return this.request<{ message: string }>(
       "PUT",
-      `/wallet/bank/${id}/primary`
+      `/dashboard/setprimarybankdetails/${id}`
     );
   }
+
   async deleteBankDetail(id: number) {
-    return this.request<{ message: string }>("DELETE", `/wallet/bank/${id}`);
+    return this.request<{ message: string }>("DELETE", `/dashboard/deletebankdetails/${id}`);
   }
 
-  // Dashboard
+  // ==================== Dashboard ====================
   async getDashboard() {
     return this.request("GET", "/api/dashboard");
   }
 }
 
+// ==================== Utility Functions ====================
 export const formatCurrency = (amount: number) => {
   if (!amount) return "₦0";
   return "₦" + amount.toLocaleString("en-NG");

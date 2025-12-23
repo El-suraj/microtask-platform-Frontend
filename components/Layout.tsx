@@ -16,6 +16,7 @@ import {
   List,
   User,
   ChevronDown,
+  ArrowDownCircle,
 } from "lucide-react";
 import { UserRole } from "../types";
 import { useAuth } from "../context/AuthContext";
@@ -59,89 +60,90 @@ const Sidebar = ({
   const links =
     user?.role === "admin"
       ? [
-          // Admin Only
-          {
-            icon: <ShieldAlert size={20} />,
-            label: "Overview",
-            path: "/admin",
-            roles: [UserRole.ADMIN],
-          },
-          {
-            icon: <Wallet size={20} />,
-            label: "Payouts",
-            path: "/admin/withdrawals",
-            roles: [UserRole.ADMIN],
-          },
-          {
-            icon: <Wallet size={20} />,
-            label: "Wallet",
-            path: "/wallet",
-            roles: [UserRole.ADMIN],
-          },
-          {
-            icon: <Settings size={20} />,
-            label: "Profile",
-            path: "/profile",
-            roles: [UserRole.ADMIN],
-          },
-        ]
+        // Admin Only
+        {
+          icon: <ShieldAlert size={20} />,
+          label: "Overview",
+          path: "/admin",
+          roles: [UserRole.ADMIN],
+        },
+        {
+          icon: <ArrowDownCircle size={20} />,
+          label: "Deposits",
+          path: "/admin/deposits",
+          roles: [UserRole.ADMIN],
+        },
+        {
+          icon: <Wallet size={20} />,
+          label: "Payouts",
+          path: "/admin/withdrawals",
+          roles: [UserRole.ADMIN],
+        },
+        {
+          icon: <Wallet size={20} />,
+          label: "Wallet",
+          path: "/wallet",
+          roles: [UserRole.ADMIN],
+        },
+        {
+          icon: <Settings size={20} />,
+          label: "Profile",
+          path: "/profile",
+          roles: [UserRole.ADMIN],
+        },
+      ]
       : [
-          // Shared
-          {
-            icon: <LayoutDashboard size={20} />,
-            label: "Dashboard",
-            path: "/dashboard",
-            roles: [UserRole.WORKER, UserRole.EMPLOYER],
-          },
-          // Worker
-          {
-            icon: <CheckSquare size={20} />,
-            label: "Browse Tasks",
-            path: "/tasks",
-            roles: [UserRole.WORKER],
-          },
-          {
-            icon: <List size={20} />,
-            label: "My Submissions",
-            path: "/worker/submissions",
-            roles: [UserRole.WORKER],
-          },
-          {
-            icon: <Users size={20} />,
-            label: "Referrals",
-            path: "/referrals",
-            roles: [UserRole.WORKER],
-          },
-          // Employer
-          {
-            icon: <Briefcase size={20} />,
-            label: "Manage Campaigns",
-            path: "/employer",
-            roles: [UserRole.EMPLOYER],
-          },
-          // Shared
-          {
-            icon: <Wallet size={20} />,
-            label: "Wallet",
-            path: "/wallet",
-            roles: [UserRole.WORKER, UserRole.EMPLOYER],
-          },
-          {
-            icon: <Settings size={20} />,
-            label: "Profile",
-            path: "/profile",
-            roles: [UserRole.WORKER, UserRole.EMPLOYER],
-          },
-        ];
+        // Shared
+        {
+          icon: <LayoutDashboard size={20} />,
+          label: "Dashboard",
+          path: "/dashboard",
+          roles: [UserRole.WORKER, UserRole.EMPLOYER],
+        },
+        // Worker
+        {
+          icon: <CheckSquare size={20} />,
+          label: "Browse Tasks",
+          path: "/tasks",
+          roles: [UserRole.WORKER],
+        },
+        {
+          icon: <List size={20} />,
+          label: "My Submissions",
+          path: "/worker/submissions",
+          roles: [UserRole.WORKER],
+        },
+        {
+          icon: <Users size={20} />,
+          label: "Referrals",
+          path: "/referrals",
+          roles: [UserRole.WORKER],
+        },
+        // Employer
+        {
+          icon: <Briefcase size={20} />,
+          label: "Manage Campaigns",
+          path: "/employer",
+          roles: [UserRole.EMPLOYER],
+        },
+        // Shared
+        {
+          icon: <Wallet size={20} />,
+          label: "Wallet",
+          path: "/wallet",
+          roles: [UserRole.WORKER, UserRole.EMPLOYER],
+        },
+        {
+          icon: <Settings size={20} />,
+          label: "Profile",
+          path: "/profile",
+          roles: [UserRole.WORKER, UserRole.EMPLOYER],
+        },
+      ];
 
   if (!user) return null;
 
-  // For admin, show all links directly (already filtered in links array)
-  // For workers/employers, filter by role
-  const filteredLinks =
-    user?.role === "admin"
-      ? links
-      : links.filter((link) => link.roles.some((r) => r === user.role));
+  const filteredLinks = links;
 
   return (
     <>
@@ -155,9 +157,8 @@ const Sidebar = ({
 
       {/* Sidebar Content */}
       <aside
-        className={`fixed top-0 left-0 z-50 h-screen w-64 bg-primary-900 text-white transition-transform duration-300 md:translate-x-0 ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`fixed top-0 left-0 z-50 h-screen w-64 bg-primary-900 text-white transition-transform duration-300 md:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
@@ -176,7 +177,7 @@ const Sidebar = ({
           {/* Navigation */}
           <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
             <p className="px-3 text-xs font-semibold text-primary-300 uppercase tracking-wider mb-2">
-              {user.role} Menu
+              MAIN MENU
             </p>
             {filteredLinks.map((link) => (
               <NavLink
@@ -184,10 +185,9 @@ const Sidebar = ({
                 to={link.path}
                 onClick={() => onClose()}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    isActive
-                      ? "bg-primary-700 text-white shadow-lg shadow-primary-900/20"
-                      : "text-primary-100 hover:text-white hover:bg-primary-800"
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive
+                    ? "bg-primary-700 text-white shadow-lg shadow-primary-900/20"
+                    : "text-primary-100 hover:text-white hover:bg-primary-800"
                   }`
                 }
               >
@@ -204,7 +204,7 @@ const Sidebar = ({
           >
             <div className="flex items-center gap-3">
               <img
-                src="components/avatar.png"
+                src={user.profileImage || "/avatar.png"}
                 alt="User"
                 className="w-9 h-9 rounded-full border border-primary-700"
               />
@@ -263,6 +263,7 @@ export const Layout = () => {
     if (pathname.includes("employer")) return "Manage Campaigns";
     if (pathname.includes("profile")) return "Settings";
     if (pathname.includes("admin/withdrawals")) return "Payout Requests";
+    if (pathname.includes("admin/deposits")) return "Deposits";
     if (pathname.includes("admin")) return "Admin Portal";
     if (pathname.includes("submissions")) return "My Work";
     return "DCTV Earn";
@@ -367,7 +368,7 @@ export const Layout = () => {
                 className="flex items-center gap-2 hover:bg-slate-100 rounded-full p-1.5 pr-3 transition-colors"
               >
                 <img
-                  src={user.avatar}
+                  src={user.avatar || "/avatar.png"}
                   alt={user.name}
                   className="w-8 h-8 rounded-full border-2 border-slate-200"
                 />

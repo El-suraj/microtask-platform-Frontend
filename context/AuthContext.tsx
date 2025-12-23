@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UserRole, LoginPayload, RegisterPayload } from '../types';
 import api from '../services/api';
-import { User } from '../services/store';
+import { User } from '../services/api';
 
 interface AuthContextType {
   user: User | null;
@@ -80,6 +80,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const register = async (data: RegisterPayload) => {
+    console.log("REGISTER BODY:", data);
     setIsLoading(true);
     try {
       const res = await api.register(data);

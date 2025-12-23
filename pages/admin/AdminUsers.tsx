@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Button, Input } from '../../components/ui';
-import { Search, Filter, MoreVertical, Shield, Ban, Unlock, Freeze, Activity, Eye } from 'lucide-react';
+import { Search, Filter, MoreVertical, Shield, Ban, Unlock, Snowflake, Activity, Eye } from 'lucide-react';
 import api, { User } from '../../services/api';
 import { AccountStatusBadge } from '../../components/ui/AccountStatusBadge';
 import { VerificationBadge } from '../../components/ui/VerificationBadge';
 import { BanUserModal } from '../../components/admin/BanUserModal';
+import { UserDetailsModal } from '../../components/admin/UserDetailsModal';
 import { AccountStatus, UserRole } from '../../types';
 
 // Helper for currency formatting
@@ -23,6 +24,7 @@ export const AdminUsers = () => {
     const [showFilters, setShowFilters] = useState(false);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [showBanModal, setShowBanModal] = useState(false);
+    const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
 
     // Pagination
@@ -40,8 +42,7 @@ export const AdminUsers = () => {
     const fetchUsers = async () => {
         try {
             const data = await api.adminGetAllUsers();
-            const usersArray = Array.isArray(data) ? data : data.users || [];
-            setUsers(usersArray);
+            setUsers(data || []);
         } catch (error) {
             console.error('Failed to fetch users', error);
         } finally {
@@ -92,6 +93,21 @@ export const AdminUsers = () => {
 
         setFilteredUsers(filtered);
         setCurrentPage(1); // Reset to first page when filters change
+    };
+
+    // Fetch full details before showing modal (if needed), currently we just pass the user object
+    // If we need more data like bank details we can fetch it inside the modal or here.
+    const openDetailsModal = async (user: User) => {
+        // Option: Fetch fresh full details here
+        try {
+            const details = await api.getUserDetails(user.id);
+            setSelectedUser(details);
+        } catch (e) {
+            // Fallback to current user object if fetch fails
+            setSelectedUser(user);
+        }
+        setShowDetailsModal(true);
+        setActiveDropdown(null);
     };
 
     const handleBanUser = async (action: 'ban' | 'suspend', reason: string, freezeWallet: boolean, endDate?: string) => {
@@ -167,10 +183,7 @@ export const AdminUsers = () => {
                         <div className="fixed inset-0 z-10" onClick={() => setActiveDropdown(null)} />
                         <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-20">
                             <button
-                                onClick={() => {
-                                    // TODO: Open user details modal
-                                    setActiveDropdown(null);
-                                }}
+                                onClick={() => openDetailsModal(user)}
                                 className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 flex items-center gap-2"
                             >
                                 <Eye size={16} />
@@ -190,7 +203,7 @@ export const AdminUsers = () => {
                                         onClick={() => handleFreezeWallet(user)}
                                         className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 flex items-center gap-2"
                                     >
-                                        <Freeze size={16} />
+                                        <Snowflake size={16} />
                                         {isFrozen ? 'Unfreeze' : 'Freeze'} Wallet
                                     </button>
                                 </>
@@ -408,8 +421,8 @@ export const AdminUsers = () => {
                                         key={page}
                                         onClick={() => setCurrentPage(page)}
                                         className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${currentPage === page
-                                                ? 'bg-primary-600 text-white'
-                                                : 'hover:bg-slate-100 text-slate-600'
+                                            ? 'bg-primary-600 text-white'
+                                            : 'hover:bg-slate-100 text-slate-600'
                                             }`}
                                     >
                                         {page}
@@ -438,6 +451,16 @@ export const AdminUsers = () => {
                     setSelectedUser(null);
                 }}
                 onConfirm={handleBanUser}
+            />
+
+            {/* User Details Modal */}
+            <UserDetailsModal
+                user={selectedUser}
+                isOpen={showDetailsModal}
+                onClose={() => {
+                    setShowDetailsModal(false);
+                    setSelectedUser(null);
+                }}
             />
         </div>
     );

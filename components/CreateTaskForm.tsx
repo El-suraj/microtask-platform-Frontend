@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, Button, Input, Textarea, Select } from './ui';
 import { X, CheckCircle, AlertCircle } from 'lucide-react';
-import {  formatCurrency } from '../services/api';
+import { formatCurrency } from '../services/api';
 import api from '../services/api';
 import { useToast } from './Toast';
 
@@ -15,16 +15,17 @@ export const CreateTaskForm = ({ onClose, onSuccess }: CreateTaskFormProps) => {
   const [formData, setFormData] = useState({
     title: '',
     category: 'App Download',
+    link: '',
     description: '',
     reward: '',
     spotsTotal: '',
     deadline: '',
     difficulty: 'Easy'
   });
-  const {showToast} = useToast();
-   // min selectable date for calendar (today)
-    const minDate = new Date().toISOString().split('T')[0];
-    
+  const { showToast } = useToast();
+  // min selectable date for calendar (today)
+  const minDate = new Date().toISOString().split('T')[0];
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -38,28 +39,30 @@ export const CreateTaskForm = ({ onClose, onSuccess }: CreateTaskFormProps) => {
     try {
       const payload = {
         title: formData.title,
-        description: formData.description,  
+        description: formData.description,
+        link: formData.link,
         reward: parseFloat(formData.reward) || 0,
-        totalSlots: parseInt(formData.totalSlots) || 10,
+        totalSlots: parseInt(formData.spotsTotal) || 10,
         proofType: 'text',
         deadline: formData.deadline ? formData.deadline : null,
         category: formData.category,
         difficulty: formData.difficulty,
       };
 
-    const res = await api.createTask({
+      const res = await api.createTask({
         title: payload.title,
         description: payload.description,
+        link: payload.link,
         reward: payload.reward,
         totalSlots: payload.totalSlots,
         proofType: payload.proofType,
         deadline: payload.deadline,
-    });
+      });
 
-    showToast((res as any)?.message ?? 'Task Created sucessfully', { type: 'success' });
-    
-    if (onSuccess) onSuccess();
-    onClose();
+      showToast((res as any)?.message ?? 'Task Created sucessfully', { type: 'success' });
+
+      if (onSuccess) onSuccess();
+      onClose();
     } catch (error: any) {
       console.error('Error creating task:', error);
       showToast(error?.message || 'Failed to create task. Please try again.', { type: 'error' });
@@ -67,7 +70,7 @@ export const CreateTaskForm = ({ onClose, onSuccess }: CreateTaskFormProps) => {
       setLoading(false);
     }
   };
-    
+
 
   const estimatedCost = (parseFloat(formData.reward) || 0) * (parseInt(formData.spotsTotal) || 0);
   const platformFee = estimatedCost * 0.10;
@@ -84,19 +87,19 @@ export const CreateTaskForm = ({ onClose, onSuccess }: CreateTaskFormProps) => {
           <X size={24} />
         </button>
       </div>
-      
+
       <form onSubmit={handleSubmit} className="p-6 space-y-6">
         <div className="space-y-5">
-          <Input 
-            label="Task Title" 
+          <Input
+            label="Task Title"
             name="title"
-            placeholder="e.g. Download App & Signup" 
+            placeholder="e.g. Download App & Signup"
             value={formData.title}
             onChange={handleChange}
             required
           />
-          
-          <Select 
+
+          <Select
             label="Category"
             name="category"
             value={formData.category}
@@ -110,7 +113,15 @@ export const CreateTaskForm = ({ onClose, onSuccess }: CreateTaskFormProps) => {
             ]}
           />
 
-          <Textarea 
+          <Input
+            label="Task Link (Optional)"
+            name="link"
+            placeholder="https://example.com/task"
+            value={formData.link}
+            onChange={handleChange}
+          />
+
+          <Textarea
             label="Description & Instructions"
             name="description"
             placeholder="Step 1: Go to website...&#10;Step 2: Create account...&#10;Step 3: Upload screenshot..."
@@ -121,30 +132,30 @@ export const CreateTaskForm = ({ onClose, onSuccess }: CreateTaskFormProps) => {
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <Input 
-              label="Reward per Worker (₦)" 
-              type="number" 
+            <Input
+              label="Reward per Worker (₦)"
+              type="number"
               name="reward"
-              step="0.01" 
+              step="0.01"
               min="0.10"
-              placeholder="500" 
+              placeholder="500"
               value={formData.reward}
               onChange={handleChange}
               required
             />
-            <Input 
-              label="Total Spots" 
-              type="number" 
+            <Input
+              label="Total Spots"
+              type="number"
               name="spotsTotal"
               min="1"
-              placeholder="100" 
-              value={formData.totalSlots}
+              placeholder="100"
+              value={formData.spotsTotal}
               onChange={handleChange}
               required
             />
-            <Input 
-              label="DeadLine" 
-              type="date" 
+            <Input
+              label="DeadLine"
+              type="date"
               name="deadline"
               min={minDate}
               placeholder="Select deadline date"
@@ -153,7 +164,7 @@ export const CreateTaskForm = ({ onClose, onSuccess }: CreateTaskFormProps) => {
               required
             />
 
-            <Select 
+            <Select
               label="Difficulty"
               name="difficulty"
               value={formData.difficulty}

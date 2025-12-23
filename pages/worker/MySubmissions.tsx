@@ -42,17 +42,11 @@ export const MySubmissions = () => {
       try {
         // Fetch submissions
         const submissionsData = await api.listMySubmissions();
-        setSubmissions(
-          Array.isArray(submissionsData)
-            ? submissionsData
-            : submissionsData.submissions || []
-        );
+        setSubmissions(submissionsData || []);
 
         // Fetch appeals
         const appealsData = await api.listAppeals();
-        setAppeals(
-          Array.isArray(appealsData) ? appealsData : appealsData.appeals || []
-        );
+        setAppeals(appealsData || []);
       } catch (err) {
         console.error("Failed to load data", err);
         showToast("Failed to load submissions and appeals", "error");
@@ -134,11 +128,10 @@ export const MySubmissions = () => {
       <div className="flex gap-4 border-b border-slate-200">
         <button
           onClick={() => setActiveTab("submissions")}
-          className={`py-3 px-4 font-medium border-b-2 transition-all ${
-            activeTab === "submissions"
+          className={`py-3 px-4 font-medium border-b-2 transition-all ${activeTab === "submissions"
               ? "border-primary-600 text-primary-600"
               : "border-transparent text-slate-600 hover:text-slate-900"
-          }`}
+            }`}
         >
           <span className="flex items-center gap-2">
             <CheckCircle size={18} />
@@ -147,11 +140,10 @@ export const MySubmissions = () => {
         </button>
         <button
           onClick={() => setActiveTab("appeals")}
-          className={`py-3 px-4 font-medium border-b-2 transition-all ${
-            activeTab === "appeals"
+          className={`py-3 px-4 font-medium border-b-2 transition-all ${activeTab === "appeals"
               ? "border-primary-600 text-primary-600"
               : "border-transparent text-slate-600 hover:text-slate-900"
-          }`}
+            }`}
         >
           <span className="flex items-center gap-2">
             <MessageSquare size={18} />
@@ -169,13 +161,12 @@ export const MySubmissions = () => {
               className="p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 hover:shadow-md transition-shadow"
             >
               <div
-                className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
-                  sub.status === "APPROVED"
+                className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${sub.status === "APPROVED"
                     ? "bg-green-100 text-green-600"
                     : sub.status === "REJECTED"
-                    ? "bg-red-100 text-red-600"
-                    : "bg-yellow-100 text-yellow-600"
-                }`}
+                      ? "bg-red-100 text-red-600"
+                      : "bg-yellow-100 text-yellow-600"
+                  }`}
               >
                 {sub.status === "APPROVED" ? (
                   <CheckCircle size={24} />
@@ -219,8 +210,8 @@ export const MySubmissions = () => {
                     sub.status === "APPROVED"
                       ? "green"
                       : sub.status === "REJECTED"
-                      ? "red"
-                      : "yellow"
+                        ? "red"
+                        : "yellow"
                   }
                 >
                   {sub.status || "PENDING"}
@@ -264,13 +255,12 @@ export const MySubmissions = () => {
             <Card key={appeal.id} className="p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row sm:items-start gap-4">
                 <div
-                  className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    appeal.status === "APPROVED"
+                  className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${appeal.status === "APPROVED"
                       ? "bg-green-100 text-green-600"
                       : appeal.status === "REJECTED"
-                      ? "bg-red-100 text-red-600"
-                      : "bg-blue-100 text-blue-600"
-                  }`}
+                        ? "bg-red-100 text-red-600"
+                        : "bg-blue-100 text-blue-600"
+                    }`}
                 >
                   {appeal.status === "APPROVED" ? (
                     <CheckCircle size={24} />
@@ -296,8 +286,8 @@ export const MySubmissions = () => {
                         appeal.status === "APPROVED"
                           ? "green"
                           : appeal.status === "REJECTED"
-                          ? "red"
-                          : "blue"
+                            ? "red"
+                            : "blue"
                       }
                     >
                       {appeal.status || "PENDING"}

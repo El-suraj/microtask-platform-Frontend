@@ -45,6 +45,7 @@ export interface Task {
   status: TaskStatus;
   employerName: string;
   timeEstimate: string;
+  link?: string;
 }
 
 export interface Submission {
@@ -73,7 +74,33 @@ export interface WithdrawalRequest {
   amount: number;
   method: string; // PayPal, Bank, etc.
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  method: string; // PayPal, Bank, etc.
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
   date: string;
+}
+
+export interface Deposit {
+  id: number;
+  userId: number;
+  amount: number;
+  method: string;
+  type: string;
+  receiptImage: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  createdAt: string;
+  user?: {
+    id: number;
+    name: string;
+    email: string;
+  };
+  rejectionReason?: string;
+}
+
+export interface DepositSettings {
+  cryptoAddress: string;
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
 }
 
 // API Payloads
@@ -85,7 +112,9 @@ export interface LoginPayload {
 export interface RegisterPayload {
   name: string;
   email: string;
+  username: string;
   role: UserRole;
+  phone: string;
   password: string;
 }
 

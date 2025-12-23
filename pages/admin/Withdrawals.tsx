@@ -6,13 +6,15 @@ import { formatCurrency } from '../../services/api';
 import { WithdrawalRequest } from '../../types';
 import { Check, X, Loader2, DollarSign, Clock, AlertTriangle } from 'lucide-react';
 import { useToast } from '../../components/Toast';
+import { useNavigate } from 'react-router-dom';
 
 export const Withdrawals = () => {
   const [requests, setRequests] = useState<WithdrawalRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const { showToast } = useToast();
-
+  const navigate = useNavigate();
+  
   useEffect(() => {
     const fetchRequests = async () => {
       try {
@@ -67,6 +69,9 @@ const formatDate = (iso?: string) => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
+           <Button onClick={() => navigate("/admin")} className="mt-4">
+            Back to Overview
+          </Button>
           <h2 className="text-2xl font-bold text-slate-900">Payout Requests</h2>
           <p className="text-slate-500">Manage user withdrawals and payments.</p>
         </div>
